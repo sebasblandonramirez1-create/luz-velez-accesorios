@@ -1,0 +1,49 @@
+-- Simula lo mínimo del entorno de Supabase que necesitan las migraciones para
+-- correr en un Postgres «pelado» durante las pruebas: esquemas auth y storage,
+-- la función auth.uid() y los roles anon/authenticated.
+--
+-- auth.uid() lee la variable de sesión app.uid, que las pruebas fijan con
+-- set_config('app.uid', '<uuid>', false) para «iniciar sesión» como alguien.
+
+create schema if not exists auth;
+create schema if not exists storage;
+create schema if not exists extensions;
+
+do $$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
+end $$;
+
+create table if not exists auth.users (
+  id uuid primary key default gen_random_uuid(),
+  email text,
+  raw_user_meta_data jsonb default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
+create or replace function auth.uid() returns uuid
+language sql stable as $$
+  select nullif(current_setting('app.uid', true), '')::uuid;
+$$;
+
+create table if not exists storage.buckets (
+  id text primary key,
+  name text not null,
+  public boolean default false,
+  file_size_limit bigint,
+  allowed_mime_types text[]
+);
+
+create table if not exists storage.objects (
+  id uuid primary key default gen_random_uuid(),
+  bucket_id text,
+  name text,
+  owner uuid
+);
+alter table storage.objects enable row level security;
+
+grant usage on schema public to anon, authenticated;
+alter default privileges in schema public grant all on tables to anon, authenticated;
+alter default privileges in schema public grant all on sequences to anon, authenticated;
+alter default privileges in schema public grant execute on functions to anon, authenticated;

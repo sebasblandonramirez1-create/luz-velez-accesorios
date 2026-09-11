@@ -1,0 +1,39 @@
+import { Encabezado, Tarjeta } from "@/components/ui";
+
+export const metadata = { title: "Ayuda" };
+
+export default function PaginaAyuda() {
+  return (
+    <div className="space-y-4">
+      <Encabezado titulo="Ayuda" volver="/ajustes" />
+      <Tarjeta titulo="Cómo empezar">
+        <ol className="list-decimal space-y-2 pl-5">
+          <li>
+            <strong>Añade tus productos</strong> desde «Productos → Añadir»: toma la foto, revisa el código sugerido, escribe el precio base y el precio al público, y la cantidad que tienes. También puedes importar tu catálogo desde Excel («Productos → Importar»).
+          </li>
+          <li>
+            <strong>Registra las entradas</strong> cuando compres mercancía: «Inventario → Registrar movimiento → Entrada por compra». El stock se calcula solo.
+          </li>
+          <li>
+            <strong>Añade tus contactos</strong>: vendedoras en consignación, clientas frecuentes y proveedores.
+          </li>
+          <li>
+            <strong>Ventas y consignaciones</strong> llegan en la siguiente fase, con las mismas hojas de VENTAS, DEVOLUCIONES y PENDIENTE DE PAGO que usas hoy.
+          </li>
+        </ol>
+      </Tarjeta>
+      <Tarjeta titulo="Instalar en el celular">
+        <p>
+          En Android (Chrome): abre el menú ⋮ y elige <strong>«Añadir a pantalla de inicio»</strong> o «Instalar aplicación». En iPhone (Safari): toca el botón de compartir y luego <strong>«Añadir a pantalla de inicio»</strong>.
+        </p>
+      </Tarjeta>
+      <Tarjeta titulo="Si algo sale mal">
+        <ul className="list-disc space-y-1 pl-5">
+          <li>Si borraste algo por error, la propietaria puede restaurarlo desde «Ajustes → Papelera» durante 30 días.</li>
+          <li>Si el stock no cuadra, revisa los movimientos del producto: cada entrada y salida queda registrada con fecha.</li>
+          <li>Si no puedes entrar, usa «Olvidé mi contraseña» o «Entrar con un enlace al correo».</li>
+        </ul>
+      </Tarjeta>
+    </div>
+  );
+}
