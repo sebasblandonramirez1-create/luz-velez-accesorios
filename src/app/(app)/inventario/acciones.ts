@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { clienteServidor, sesionActual } from "@/lib/supabase/servidor";
 import { mensajeDeError } from "@/lib/errores";
-import { leerPesos } from "@/lib/formato";
+import { hoyIso, leerPesos } from "@/lib/formato";
 import { tiposManuales, type TipoMovimiento } from "@/lib/inventario";
 
 export interface EstadoMovimiento {
@@ -27,7 +27,7 @@ export async function registrarMovimiento(_estado: EstadoMovimiento, fd: FormDat
   if (!Number.isInteger(cantidad) || cantidad <= 0) return { error: "La cantidad debe ser un número entero mayor que cero." };
 
   // La fecha del formulario es del día (aaaa-mm-dd) en Bogotá; se guarda al mediodía local para evitar saltos de día.
-  const fecha = /^\d{4}-\d{2}-\d{2}$/.test(fechaTexto) ? new Date(`${fechaTexto}T12:00:00-05:00`).toISOString() : new Date().toISOString();
+  const fecha = /^\d{4}-\d{2}-\d{2}$/.test(fechaTexto) && fechaTexto !== hoyIso() ? new Date(`${fechaTexto}T12:00:00-05:00`).toISOString() : new Date().toISOString();
 
   const supabase = await clienteServidor();
   const { error } = await supabase.from("movimientos_inventario").insert({

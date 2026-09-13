@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { clienteServidor, sesionActual } from "@/lib/supabase/servidor";
 import { mensajeDeError } from "@/lib/errores";
+import { hoyIso } from "@/lib/formato";
 
 const esquemaVenta = z.object({
   fecha: z.string().optional(),
@@ -28,13 +29,21 @@ const esquemaVenta = z.object({
 
 export type DatosVenta = z.infer<typeof esquemaVenta>;
 
+/** Fecha de un <input type="date">: si es hoy se usa la hora real; si es otro día, el mediodía en Bogotá. */
+function fechaDesdeFormulario(texto?: string | null): string | undefined {
+  if (!texto || !/^\d{4}-\d{2}-\d{2}$/.test(texto)) return undefined;
+  if (texto === hoyIso()) return undefined;
+  return new Date(`${texto}T12:00:00-05:00`).toISOString();
+}
+
+
 export async function registrarVenta(datos: DatosVenta): Promise<{ id?: string; error?: string }> {
   const sesion = await sesionActual();
   if (!sesion) return { error: "Tu sesión venció. Vuelve a entrar." };
   const v = esquemaVenta.safeParse(datos);
   if (!v.success) return { error: v.error.issues[0]?.message ?? "Revisa los datos de la venta." };
   const supabase = await clienteServidor();
-  const p = { ...v.data, fecha: v.data.fecha ? new Date(`${v.data.fecha}T12:00:00-05:00`).toISOString() : undefined };
+  const p = { ...v.data, fecha: fechaDesdeFormulario(v.data.fecha) };
   const { data, error } = await supabase.rpc("registrar_venta", { p });
   if (error) return { error: traducir(error) };
   revalidatePath("/ventas");

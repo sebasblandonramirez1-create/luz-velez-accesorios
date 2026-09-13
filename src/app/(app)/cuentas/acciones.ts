@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { clienteServidor, sesionActual } from "@/lib/supabase/servidor";
 import { mensajeDeError } from "@/lib/errores";
-import { leerPesos } from "@/lib/formato";
+import { hoyIso, leerPesos } from "@/lib/formato";
 
 export interface EstadoAbono {
   error?: string;
@@ -27,7 +27,7 @@ export async function registrarAbonoAccion(_e: EstadoAbono, fd: FormData): Promi
       cuenta_id: cuentaId,
       valor,
       medio_pago: medio,
-      fecha: /^\d{4}-\d{2}-\d{2}$/.test(fechaTexto) ? new Date(`${fechaTexto}T12:00:00-05:00`).toISOString() : undefined,
+      fecha: /^\d{4}-\d{2}-\d{2}$/.test(fechaTexto) && fechaTexto !== hoyIso() ? new Date(`${fechaTexto}T12:00:00-05:00`).toISOString() : undefined,
       nota,
     },
   });

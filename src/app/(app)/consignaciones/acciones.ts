@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { clienteServidor, sesionActual } from "@/lib/supabase/servidor";
 import { mensajeDeError } from "@/lib/errores";
+import { hoyIso } from "@/lib/formato";
 
 const esquemaConsignacion = z.object({
   contacto_id: z.string().uuid("Elige la vendedora."),
@@ -24,8 +25,11 @@ const esquemaLiquidacion = z.object({
 });
 export type DatosLiquidacion = z.infer<typeof esquemaLiquidacion>;
 
+/** Fecha de un <input type="date">: si es hoy se usa la hora real; si es otro día, el mediodía en Bogotá. */
 function fechaIso(texto?: string) {
-  return texto && /^\d{4}-\d{2}-\d{2}$/.test(texto) ? new Date(`${texto}T12:00:00-05:00`).toISOString() : undefined;
+  if (!texto || !/^\d{4}-\d{2}-\d{2}$/.test(texto)) return undefined;
+  if (texto === hoyIso()) return undefined;
+  return new Date(`${texto}T12:00:00-05:00`).toISOString();
 }
 
 function revalidar(id?: string) {

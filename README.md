@@ -12,8 +12,8 @@ formularios simples que funcionan desde el celular y el computador.
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| 1 | Proveedores verificados, modelo de datos, autenticación y roles, productos con fotos, movimientos de inventario, importación y exportación, ajustes, papelera, despliegue continuo | **Hecha** (pendiente de crear las cuentas en la nube, ver [Desplegar desde cero](#desplegar-desde-cero)) |
-| 2 | Ventas directas, consignación con liquidación, cuentas por cobrar, vistas de impresión iguales a las hojas actuales | Pendiente |
+| 1 | Proveedores verificados, modelo de datos, autenticación y roles, productos con fotos, movimientos de inventario, importación y exportación, ajustes, papelera, despliegue continuo | **Hecha y desplegada** en <https://luz-velez-accesorios.vercel.app> |
+| 2 | Ventas directas, consignación con liquidación, cuentas por cobrar, vistas de impresión iguales a las hojas actuales | **Hecha y desplegada** |
 | 3 | Gastos, compras, reportes y exportaciones a Excel y PDF | Pendiente |
 | 4 | Etiquetas e impresora NIIMBOT (Bluetooth, PNG y PDF) | Pendiente |
 | 5 | Copias de seguridad automáticas y restauración probada, PWA sin conexión, catálogo público, tutorial y guía | Pendiente |
@@ -87,7 +87,8 @@ src/proxy.ts           refresca la sesión y protege las rutas
 tests/                 pruebas Vitest; tests/db levanta un Postgres embebido y aplica las migraciones
 scripts/               utilidades (preparar Postgres embebido)
 docs/                  ejemplo de CSV para importar
-.github/workflows/     CI/CD y «mantener activo»
+src/app/imprimir/      vistas de impresión (comprobante de venta, hojas de consignación)
+.github/workflows/     CI y «mantener activo»
 ```
 
 ## Desarrollo local
@@ -219,6 +220,31 @@ Ver `.env.example`. Nunca subas `.env.local` al repositorio (está en `.gitignor
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | navegador y servidor | clave pública; RLS limita su alcance |
 | `SUPABASE_SERVICE_ROLE_KEY` | solo servidor y GitHub | invitaciones, respaldos, purga |
 | `NEXT_PUBLIC_APP_URL` | servidor | enlaces de correo y catálogo público |
+
+## Ventas, consignación y cuentas por cobrar (Fase 2)
+
+- **Una venta = un documento con líneas + una cuenta por cobrar.** Los pagos son
+  `abonos`; una venta «pagada» es una venta con un abono por el total en el momento de
+  registrarla. Así la caja (Fase 3) sale de los abonos por fecha y medio de pago.
+- **Consignación.** `consignaciones` → `consignacion_lineas` (entregada, vendida,
+  devuelta, pendiente = entregada − vendida − devuelta, garantizado por restricción).
+  Cada visita de la vendedora es una `liquidacion` con sus líneas; el disparador
+  acumula en la línea de consignación, devuelve al inventario lo devuelto y actualiza
+  la cuenta por cobrar (valor = vendido acumulado). El estado pasa de abierta a parcial
+  y a cerrada cuando no queda nada pendiente.
+- **Todo entra por funciones atómicas** (`registrar_venta`, `registrar_consignacion`,
+  `registrar_liquidacion`, `registrar_abono`): una llamada, una transacción; si falta
+  stock o se liquida de más, no queda nada a medias.
+- **Papelera.** Anular una venta devuelve el inventario y anula sus abonos; anular una
+  liquidación deshace cantidades y retornos; una consignación con liquidaciones no se
+  puede anular hasta anularlas. Todo se restaura desde Ajustes → Papelera.
+- **Comprobantes y hojas.** `/imprimir/ventas/<id>` y `/imprimir/consignaciones/<id>`
+  son páginas de impresión (Relación de entrega, VENTAS, DEVOLUCIONES por bloques y
+  PENDIENTE DE PAGO, con el código y el precio en miles como en el papel). El PDF se
+  obtiene con «Imprimir → Guardar como PDF» del navegador, también en el celular; no se
+  genera en el servidor para no añadir dependencias.
+- **WhatsApp.** El comprobante y el recordatorio de saldo son textos listos para
+  pegar; el botón abre `wa.me` con el número del contacto (indicativo 57).
 
 ## Decisiones de diseño
 
