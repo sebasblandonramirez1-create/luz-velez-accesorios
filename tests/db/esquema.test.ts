@@ -248,6 +248,29 @@ describe("políticas RLS", () => {
     }
   });
 
+  it("anon no puede ejecutar funciones; la purga es solo del servicio", async () => {
+    await db.cliente.query("set role anon");
+    try {
+      await expect(db.cliente.query("select public.purgar_papelera(30)")).rejects.toThrow(/permission denied/);
+      await expect(db.cliente.query("select public.siguiente_codigo('SLA')")).rejects.toThrow(/permission denied/);
+    } finally {
+      await db.cliente.query("reset role");
+    }
+    await db.cliente.query("set role authenticated");
+    try {
+      await expect(db.cliente.query("select public.purgar_papelera(30)")).rejects.toThrow(/permission denied/);
+      await expect(db.cliente.query("select public.siguiente_codigo('SLA')")).resolves.toBeTruthy();
+    } finally {
+      await db.cliente.query("reset role");
+    }
+    await db.cliente.query("set role service_role");
+    try {
+      await expect(db.cliente.query("select public.purgar_papelera(30)")).resolves.toBeTruthy();
+    } finally {
+      await db.cliente.query("reset role");
+    }
+  });
+
   it("el catálogo público solo muestra lo visible y cuando está activo", async () => {
     await db.iniciarSesion(propietaria);
     const id = await crearProducto("SLA500");
