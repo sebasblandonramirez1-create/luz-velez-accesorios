@@ -18,9 +18,17 @@ const SECUNDARIOS = [
   { href: "/cuentas", texto: "Cuentas por cobrar", icono: "$" },
 ];
 
+/** Contabilidad: solo la propietaria. */
+const CONTABILIDAD = [
+  { href: "/compras", texto: "Compras", icono: "⇩" },
+  { href: "/gastos", texto: "Gastos", icono: "−" },
+  { href: "/caja", texto: "Caja del día", icono: "▤" },
+  { href: "/reportes", texto: "Reportes", icono: "≣" },
+];
+
 function activo(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
-  if (href === "/ajustes") return pathname.startsWith("/ajustes") || SECUNDARIOS.some((s) => pathname.startsWith(s.href));
+  if (href === "/ajustes") return pathname.startsWith("/ajustes") || [...SECUNDARIOS, ...CONTABILIDAD].some((s) => pathname.startsWith(s.href));
   return pathname.startsWith(href);
 }
 
@@ -71,7 +79,7 @@ export function MenuLateral({ nombreNegocio, nombreUsuaria, rol }: { nombreNegoc
       </div>
       <nav aria-label="Principal" className="flex-1 p-3">
         <ul className="space-y-1">
-          {[...ENLACES.slice(0, 4), ...SECUNDARIOS, ENLACES[4]].map((e) => {
+          {[...ENLACES.slice(0, 4), ...SECUNDARIOS, ...(rol === "propietaria" ? CONTABILIDAD : []), ENLACES[4]].map((e) => {
             const esActivo = e.href === "/ajustes" ? pathname.startsWith("/ajustes") : activo(pathname, e.href);
             return (
               <li key={e.href}>

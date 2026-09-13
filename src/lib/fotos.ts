@@ -52,11 +52,11 @@ export async function prepararFoto(original: File): Promise<FotoPreparada> {
   };
 }
 
-/** Rutas en el bucket «fotos»: productos/<id>/<marca>.jpg y …_mini.jpg */
-export function rutasDeFoto(productoId: string): { ruta: string; rutaMiniatura: string } {
+/** Rutas en el bucket «fotos»: <carpeta>/<id>/<marca>.jpg y …_mini.jpg */
+export function rutasDeFoto(id: string, carpeta: "productos" | "gastos" = "productos"): { ruta: string; rutaMiniatura: string } {
   const marca = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   return {
-    ruta: `productos/${productoId}/${marca}.jpg`,
-    rutaMiniatura: `productos/${productoId}/${marca}_mini.jpg`,
+    ruta: `${carpeta}/${id}/${marca}.jpg`,
+    rutaMiniatura: `${carpeta}/${id}/${marca}_mini.jpg`,
   };
 }

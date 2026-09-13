@@ -14,6 +14,8 @@ const NOMBRES: Record<string, string> = {
   consignaciones: "Consignación",
   liquidaciones: "Liquidación",
   abonos: "Abono",
+  compras: "Compra",
+  gastos: "Gasto",
 };
 
 export default async function PaginaPapelera({ searchParams }: PageProps<"/ajustes/papelera">) {

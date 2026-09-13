@@ -15,6 +15,16 @@ export type MedioPago = "efectivo" | "transferencia" | "nequi" | "daviplata" | "
 export type EstadoConsignacion = "abierta" | "parcial" | "cerrada";
 export type EstadoCuenta = "abierta" | "pagada";
 export type OrigenCuenta = "venta" | "consignacion";
+export type CategoriaGasto = "compra_mercancia" | "empaques" | "transporte" | "comisiones" | "publicidad" | "otros";
+
+export const CATEGORIAS_GASTO: Record<CategoriaGasto, string> = {
+  compra_mercancia: "Compra de mercancía",
+  empaques: "Empaques",
+  transporte: "Transporte",
+  comisiones: "Comisiones",
+  publicidad: "Publicidad",
+  otros: "Otros",
+};
 
 export const MEDIOS_PAGO: Record<MedioPago, string> = {
   efectivo: "Efectivo",
@@ -303,6 +313,104 @@ export type SaldoPorContacto = {
   dias: number;
 };
 
+export type Compra = {
+  id: string;
+  numero: number;
+  proveedor_id: string | null;
+  fecha: string;
+  total: number;
+  medio_pago: MedioPago;
+  nota: string;
+  registrado_por: string | null;
+  creado_en: string;
+  actualizado_en: string;
+  eliminado_en: string | null;
+};
+
+export type CompraLinea = {
+  id: string;
+  compra_id: string;
+  producto_id: string;
+  cantidad: number;
+  costo_unitario: number;
+  subtotal: number;
+  creado_en: string;
+};
+
+export type Gasto = {
+  id: string;
+  fecha: string;
+  categoria: CategoriaGasto;
+  valor: number;
+  medio_pago: MedioPago;
+  proveedor_id: string | null;
+  compra_id: string | null;
+  foto_soporte: string | null;
+  nota: string;
+  registrado_por: string | null;
+  creado_en: string;
+  actualizado_en: string;
+  eliminado_en: string | null;
+};
+
+export type CierreCaja = {
+  id: string;
+  dia: string;
+  ingresos_efectivo: number;
+  ingresos_otros: number;
+  gastos_efectivo: number;
+  gastos_otros: number;
+  efectivo_esperado: number;
+  efectivo_contado: number;
+  diferencia: number;
+  nota: string;
+  cerrado_por: string | null;
+  creado_en: string;
+};
+
+/** Resultado de reporte_periodo(desde, hasta). */
+export type Reporte = {
+  desde: string;
+  hasta: string;
+  ventas_directas: number;
+  ventas_directas_cantidad: number;
+  ventas_consignacion: number;
+  descuentos: number;
+  ventas_total: number;
+  piezas_vendidas: number;
+  costo_vendido: number;
+  piezas_sin_costo: number;
+  por_categoria: { categoria: CategoriaProducto; cantidad: number; ingreso: number }[];
+  mas_vendidos: { producto_id: string; codigo: string; nombre: string; cantidad: number; ingreso: number }[];
+  ingresos_cobrados: number;
+  ingresos_por_medio: { medio_pago: MedioPago; valor: number }[];
+  gastos_total: number;
+  gastos_operativos: number;
+  compras_mercancia: number;
+  gastos_por_categoria: { categoria: CategoriaGasto; valor: number; cantidad: number }[];
+  cuentas_por_cobrar: number;
+  inventario_unidades: number;
+  inventario_base: number;
+  inventario_publico: number;
+  inventario_costo: number;
+  en_consignacion: number;
+  margen_bruto: number;
+  utilidad_estimada: number;
+};
+
+/** Resultado de caja_del_dia(dia). */
+export type CajaDia = {
+  dia: string;
+  ingresos: { medio_pago: MedioPago; valor: number; cantidad: number }[];
+  gastos: { medio_pago: MedioPago; valor: number; cantidad: number }[];
+  ventas: number;
+  ingresos_efectivo: number;
+  ingresos_otros: number;
+  gastos_efectivo: number;
+  gastos_otros: number;
+  cierre: CierreCaja | null;
+};
+
 export type FilaPapelera = {
   tabla: string;
   id: string;
@@ -421,6 +529,31 @@ export type Database = {
         Update: never;
         Relationships: [{ foreignKeyName: "cuentas_por_cobrar_contacto_id_fkey"; columns: ["contacto_id"]; isOneToOne: false; referencedRelation: "contactos"; referencedColumns: ["id"] }];
       };
+      compras: {
+        Row: Compra;
+        Insert: Partial<Compra>;
+        Update: Partial<Compra>;
+        Relationships: [{ foreignKeyName: "compras_proveedor_id_fkey"; columns: ["proveedor_id"]; isOneToOne: false; referencedRelation: "contactos"; referencedColumns: ["id"] }];
+      };
+      compra_lineas: {
+        Row: CompraLinea;
+        Insert: Partial<CompraLinea>;
+        Update: Partial<CompraLinea>;
+        Relationships: [
+          { foreignKeyName: "compra_lineas_compra_id_fkey"; columns: ["compra_id"]; isOneToOne: false; referencedRelation: "compras"; referencedColumns: ["id"] },
+          { foreignKeyName: "compra_lineas_producto_id_fkey"; columns: ["producto_id"]; isOneToOne: false; referencedRelation: "productos"; referencedColumns: ["id"] },
+        ];
+      };
+      gastos: {
+        Row: Gasto;
+        Insert: Partial<Gasto>;
+        Update: Partial<Gasto>;
+        Relationships: [
+          { foreignKeyName: "gastos_proveedor_id_fkey"; columns: ["proveedor_id"]; isOneToOne: false; referencedRelation: "contactos"; referencedColumns: ["id"] },
+          { foreignKeyName: "gastos_compra_id_fkey"; columns: ["compra_id"]; isOneToOne: false; referencedRelation: "compras"; referencedColumns: ["id"] },
+        ];
+      };
+      cierres_caja: { Row: CierreCaja; Insert: Partial<CierreCaja>; Update: Partial<CierreCaja>; Relationships: [] };
       abonos: {
         Row: Abono;
         Insert: Partial<Abono>;
@@ -449,6 +582,10 @@ export type Database = {
       registrar_consignacion: { Args: { p: Record<string, unknown> }; Returns: string };
       registrar_liquidacion: { Args: { p: Record<string, unknown> }; Returns: string };
       registrar_abono: { Args: { p: Record<string, unknown> }; Returns: string };
+      registrar_compra: { Args: { p: Record<string, unknown> }; Returns: string };
+      caja_del_dia: { Args: { p_dia: string }; Returns: CajaDia };
+      cerrar_caja: { Args: { p_dia: string; p_efectivo_contado: number; p_nota?: string }; Returns: string };
+      reporte_periodo: { Args: { p_desde: string; p_hasta: string }; Returns: Reporte };
     };
     Enums: {
       rol_usuario: RolUsuario;
@@ -461,6 +598,7 @@ export type Database = {
       estado_consignacion: EstadoConsignacion;
       estado_cuenta: EstadoCuenta;
       origen_cuenta: OrigenCuenta;
+      categoria_gasto: CategoriaGasto;
     };
     CompositeTypes: Record<string, never>;
   };

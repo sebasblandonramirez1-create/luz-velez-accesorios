@@ -18,7 +18,10 @@ export default function PaginaAyuda() {
             <strong>Añade tus contactos</strong>: vendedoras en consignación, clientas frecuentes y proveedores.
           </li>
           <li>
-            <strong>Ventas y consignaciones</strong> llegan en la siguiente fase, con las mismas hojas de VENTAS, DEVOLUCIONES y PENDIENTE DE PAGO que usas hoy.
+            <strong>Ventas y consignaciones</strong>: en «Ventas» registras la venta directa; en «Consignación» la entrega a una vendedora y, cuando te trae la cuenta, la liquidación con las hojas de VENTAS, DEVOLUCIONES y PENDIENTE DE PAGO.
+          </li>
+          <li>
+            <strong>Compras, gastos, caja y reportes</strong> (solo propietaria): en «Más». Cada compra entra al inventario y actualiza el costo; la caja del día muestra lo que debe haber en efectivo; los reportes se exportan a Excel o PDF.
           </li>
         </ol>
       </Tarjeta>
