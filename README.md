@@ -146,41 +146,41 @@ Usuarias*).
 
 ### 3. GitHub
 
-1. Crea un repositorio (puede ser privado) y sube este código:
+1. Crea un repositorio privado en <https://github.com/new> llamado `luz-velez-accesorios`,
+   sin README ni `.gitignore`.
+2. Crea un token clásico con permiso `repo` en <https://github.com/settings/tokens> (es la
+   «contraseña» que pide `git push`).
+3. Sube el código:
 
    ```bash
-   git remote add origin git@github.com:<usuario>/luz-velez-accesorios.git
+   git remote add origin https://github.com/<usuario>/luz-velez-accesorios.git
    git push -u origin main
    ```
 
-2. En *Settings → Secrets and variables → Actions* añade los secretos:
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN` (de
-   <https://supabase.com/dashboard/account/tokens>), `SUPABASE_PROJECT_REF`,
-   `SUPABASE_DB_PASSWORD`, y los de Vercel del paso siguiente.
+   El flujo `CI` corre solo y **no necesita secretos**. El flujo `mantener-activo`
+   tampoco: usa la URL y la clave pública del proyecto, que van en el propio archivo.
 
 ### 4. Vercel
 
-1. Crea una cuenta en <https://vercel.com> (con GitHub) y un proyecto vacío, o enlázalo
-   desde el computador:
+1. Crea la cuenta en <https://vercel.com/signup> con GitHub, plan Hobby.
+2. **Add New → Project → Import** `luz-velez-accesorios`. En *Environment Variables*
+   añade `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY` y `NEXT_PUBLIC_APP_URL` (la URL que Vercel asigne,
+   `https://luz-velez-accesorios.vercel.app` salvo que añada un sufijo). **Deploy**.
+3. Vuelve a Supabase → *Authentication → URL Configuration* y pon esa URL como *Site
+   URL* y `https://<url>/auth/callback` en *Redirect URLs* (o pídele a Claude que lo haga
+   con `npx supabase config push`).
 
-   ```bash
-   npx vercel login
-   npx vercel link
-   cat .vercel/project.json   # orgId y projectId → secretos VERCEL_ORG_ID y VERCEL_PROJECT_ID
-   ```
+Desde entonces, cada `git push` a `main` corre las pruebas en GitHub y Vercel compila y
+publica; si la compilación falla, no se publica. Las migraciones se aplican desde el
+computador con `npx supabase db push` (o desde Actions si se activa la variable
+`MIGRAR_DESDE_ACTIONS`, ver `.github/workflows/ci.yml`).
 
-2. Crea un token en <https://vercel.com/account/tokens> → secreto `VERCEL_TOKEN`.
-3. En el proyecto de Vercel, *Settings → Environment Variables*, añade
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
-   `SUPABASE_SERVICE_ROLE_KEY` y `NEXT_PUBLIC_APP_URL` (la URL pública).
-4. Si usas la integración Git de Vercel, **desactívala** para este repositorio
-   (*Settings → Git*) o deja que conviva: el despliegue oficial es el de GitHub
-   Actions, que solo publica cuando pasan las pruebas.
-
-Desde entonces, cada `git push` a `main` corre las pruebas, aplica las migraciones
-nuevas y publica la app. El flujo `mantener-activo` consulta Supabase los lunes y
-jueves para evitar la pausa por inactividad.
+> Nota: con la integración de Vercel, un fallo en las **pruebas** de GitHub no bloquea
+> la publicación, solo aparece en rojo en el commit. Si más adelante se quiere que las
+> pruebas bloqueen el despliegue, se desconecta la integración y se despliega desde
+> Actions con un token de Vercel; la versión anterior de `ci.yml` en el historial de git
+> tiene ese flujo.
 
 ## Cómo añadir una usuaria
 

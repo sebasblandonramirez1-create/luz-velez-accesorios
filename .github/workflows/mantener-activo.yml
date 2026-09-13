@@ -5,8 +5,8 @@
 # Esta tarea hace una consulta mínima a la base de datos los lunes y jueves,
 # de modo que nunca pasen 7 días sin actividad aunque nadie use la app.
 #
-# Secretos: NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY.
-# Además aprovecha para purgar la papelera por si pg_cron no está disponible.
+# No necesita secretos: usa la URL y la clave pública del proyecto. Si existe el
+# secreto SUPABASE_SERVICE_ROLE_KEY, además purga la papelera (respaldo de pg_cron).
 
 name: Mantener activo Supabase
 
@@ -15,18 +15,18 @@ on:
     - cron: "17 9 * * 1,4" # lunes y jueves 09:17 UTC (04:17 en Bogotá)
   workflow_dispatch:
 
+env:
+  URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://tklopxvtbwzdgseacqyw.supabase.co' }}
+  CLAVE: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_VKktmSYVsPQ8Egf0hox2zw_UREyov6g' }}
+
 jobs:
   consultar:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Consulta mínima a la base de datos
-        env:
-          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          CLAVE: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: |
           set -e
-          test -n "$URL" || { echo "Falta NEXT_PUBLIC_SUPABASE_URL"; exit 1; }
           codigo=$(curl -s -o /tmp/respuesta.txt -w "%{http_code}" \
             -H "apikey: $CLAVE" -H "Authorization: Bearer $CLAVE" \
             "$URL/rest/v1/catalogo_publico?select=id&limit=1")
@@ -36,7 +36,6 @@ jobs:
       - name: Purgar papelera (mayor de 30 días)
         if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
         env:
-          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SERVICIO: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           curl -s -X POST -H "apikey: $SERVICIO" -H "Authorization: Bearer $SERVICIO" \

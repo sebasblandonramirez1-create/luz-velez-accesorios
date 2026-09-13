@@ -1,20 +1,17 @@
-# Integración y despliegue continuos.
+# Integración continua.
 #
 # En cada push y pull request: lint, tipos, pruebas (incluidas las de base de
-# datos con Postgres embebido) y compilación.
-# En cada push a main, si todo pasa: aplica las migraciones al proyecto de
-# Supabase y despliega a producción en Vercel.
+# datos con Postgres embebido) y compilación. No necesita ningún secreto.
 #
-# Secretos necesarios (Settings → Secrets and variables → Actions):
-#   SUPABASE_ACCESS_TOKEN   token personal de Supabase (https://supabase.com/dashboard/account/tokens)
-#   SUPABASE_PROJECT_REF    identificador del proyecto (la parte «abcdefgh» de https://abcdefgh.supabase.co)
-#   SUPABASE_DB_PASSWORD    contraseña de la base de datos del proyecto
-#   VERCEL_TOKEN            token de Vercel (https://vercel.com/account/tokens)
-#   VERCEL_ORG_ID           de .vercel/project.json tras `vercel link`
-#   VERCEL_PROJECT_ID       de .vercel/project.json tras `vercel link`
-#   NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY  (para la compilación de verificación)
+# El despliegue lo hace la integración de Vercel con GitHub: cada push a main
+# compila y publica; si la compilación falla, no se publica. Las migraciones de
+# base de datos se aplican desde el computador con `npx supabase db push`.
+#
+# Opcional: para que las migraciones se apliquen también desde aquí, crea la
+# variable de repositorio MIGRAR_DESDE_ACTIONS=true y los secretos
+# SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF y SUPABASE_DB_PASSWORD.
 
-name: CI y despliegue
+name: CI
 
 on:
   push:
@@ -25,6 +22,11 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
+
+env:
+  # Valores públicos del proyecto (la clave «publishable» es segura en el código).
+  NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://tklopxvtbwzdgseacqyw.supabase.co' }}
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_VKktmSYVsPQ8Egf0hox2zw_UREyov6g' }}
 
 jobs:
   verificar:
@@ -41,16 +43,12 @@ jobs:
       - run: npm run lint
       - run: npx next typegen && npm run typecheck
       - run: npm test
-      - name: Compilar
-        run: npm run build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://ejemplo.supabase.co' }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'clave-de-ejemplo' }}
+      - run: npm run build
 
   migrar:
-    name: Aplicar migraciones en Supabase
+    name: Aplicar migraciones en Supabase (opcional)
     needs: verificar
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.MIGRAR_DESDE_ACTIONS == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -67,29 +65,3 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-
-  desplegar:
-    name: Desplegar en Vercel
-    needs: migrar
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      - run: npx vercel build --prod --token="$VERCEL_TOKEN"
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      - run: npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
