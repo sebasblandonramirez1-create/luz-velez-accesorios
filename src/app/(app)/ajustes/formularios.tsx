@@ -5,6 +5,7 @@ import { Aviso, Campo, Casilla, Selector, Tarjeta, BotonEnviar } from "@/compone
 import { pesos } from "@/lib/formato";
 import { precioPublicoSugerido, type RedondeoPrecio, type ReglaPrecioPublico } from "@/lib/precios";
 import type { Ajustes } from "@/lib/tipos";
+import { LINEAS_ETIQUETA, ROLLOS, type LineaEtiqueta } from "@/lib/etiquetas";
 import { guardarCatalogo, guardarEtiqueta, guardarNegocio, guardarPerfil, guardarPrecios, guardarRespaldo, type EstadoAjustes } from "./acciones";
 
 function Mensajes({ estado }: { estado: EstadoAjustes }) {
@@ -116,12 +117,20 @@ function SeccionPrecios({ ajustes }: { ajustes: Ajustes }) {
   );
 }
 
-const MODELOS_NIIMBOT = ["D11", "D101", "D110", "B1", "B18", "B21", "B3S", "M2", "Otro"];
+const MODELOS_NIIMBOT = ["D11", "D101", "D110", "D110_M", "B1", "B18", "B21", "B21_PRO", "B3S", "M2", "Otro"];
 
 function SeccionEtiqueta({ ajustes }: { ajustes: Ajustes }) {
   const [estado, accion] = useActionState<EstadoAjustes, FormData>(guardarEtiqueta, {});
+  const [ancho, setAncho] = useState(String(ajustes.etiqueta_ancho_mm));
+  const [alto, setAlto] = useState(String(ajustes.etiqueta_alto_mm));
+  const [lineas, setLineas] = useState<LineaEtiqueta[]>((ajustes.etiqueta_lineas as LineaEtiqueta[]) ?? []);
+  function alternar(l: LineaEtiqueta) {
+    setLineas((ls) => (ls.includes(l) ? ls.filter((x) => x !== l) : [...ls, l]));
+  }
+  const orden: LineaEtiqueta[] = ["negocio", "descripcion", "codigo_precio", "precio_publico"];
   return (
     <Tarjeta titulo="Etiqueta e impresora">
+      <div id="etiqueta" />
       <form action={accion} className="space-y-3">
         <Mensajes estado={estado} />
         <div className="grid gap-3 sm:grid-cols-2">
@@ -131,12 +140,50 @@ function SeccionEtiqueta({ ajustes }: { ajustes: Ajustes }) {
               <option key={m} value={m} />
             ))}
           </datalist>
-          <Campo etiqueta="Puntos por pulgada (DPI)" name="etiqueta_dpi" type="number" min={100} defaultValue={ajustes.etiqueta_dpi} ayuda="La mayoría de NIIMBOT imprime a 203." />
-          <Campo etiqueta="Ancho del rollo (mm)" name="etiqueta_ancho_mm" inputMode="decimal" defaultValue={String(ajustes.etiqueta_ancho_mm)} />
-          <Campo etiqueta="Alto de cada etiqueta (mm)" name="etiqueta_alto_mm" inputMode="decimal" defaultValue={String(ajustes.etiqueta_alto_mm)} />
+          <Campo etiqueta="Puntos por pulgada (DPI)" name="etiqueta_dpi" type="number" min={100} defaultValue={ajustes.etiqueta_dpi} ayuda="D11, D110, B1 y B21 imprimen a 203; B1 Pro y B21 Pro a 300." />
+          <Selector
+            etiqueta="Rollo cargado"
+            name="rollo"
+            value=""
+            onChange={(e) => {
+              const r = ROLLOS[Number(e.target.value)];
+              if (r) {
+                setAncho(String(r.ancho));
+                setAlto(String(r.alto));
+              }
+            }}
+            ayuda="Elige uno o escribe las medidas a mano."
+          >
+            <option value="">Elegir un rollo habitual…</option>
+            {ROLLOS.map((r, i) => (
+              <option key={r.nombre} value={i}>
+                {r.nombre}
+              </option>
+            ))}
+          </Selector>
+          <div className="grid grid-cols-2 gap-3">
+            <Campo etiqueta="Ancho (mm)" name="etiqueta_ancho_mm" inputMode="decimal" value={ancho} onChange={(e) => setAncho(e.target.value)} />
+            <Campo etiqueta="Alto (mm)" name="etiqueta_alto_mm" inputMode="decimal" value={alto} onChange={(e) => setAlto(e.target.value)} />
+          </div>
         </div>
+        <fieldset className="rounded-xl border border-borde p-3">
+          <legend className="px-1 text-sm font-semibold">Líneas de la etiqueta</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {orden.map((l) => (
+              <label key={l} className="flex items-center gap-2">
+                <input type="checkbox" className="h-5 w-5 accent-primario" checked={lineas.includes(l)} onChange={() => alternar(l)} />
+                <span>{LINEAS_ETIQUETA[l]}</span>
+              </label>
+            ))}
+          </div>
+          {orden.filter((l) => lineas.includes(l)).map((l) => (
+            <input key={l} type="hidden" name="etiqueta_lineas" value={l} />
+          ))}
+        </fieldset>
         <Casilla etiqueta="Mostrar el precio en miles junto al código" name="etiqueta_mostrar_precio_miles" defaultChecked={ajustes.etiqueta_mostrar_precio_miles} ayuda="Como en las hojas: «SLA013 40». Si se desactiva, la etiqueta solo lleva el código." />
-        <p className="text-sm text-texto-suave">El diseño de la etiqueta y la impresión por Bluetooth llegan en la Fase 4; estos datos ya quedan guardados.</p>
+        <p className="text-sm text-texto-suave">
+          La vista previa y la impresión están en <a href="/etiquetas" className="font-semibold text-primario">Imprimir etiquetas</a>. Bluetooth directo funciona en Chrome o Edge (Android y computador); en iPhone se usa el PNG con la app NIIMBOT.
+        </p>
         <BotonEnviar grande={false} className="sm:w-auto">
           Guardar
         </BotonEnviar>

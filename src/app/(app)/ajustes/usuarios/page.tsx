@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { clienteServidor, sesionActual } from "@/lib/supabase/servidor";
 import { Aviso, Encabezado, Etiqueta, Tarjeta } from "@/components/ui";
 import { fecha } from "@/lib/formato";
-import { cambiarRolUsuaria } from "../acciones";
+import { borrarInvitacion, cambiarRolUsuaria } from "../acciones";
 import { FormularioInvitar } from "./invitar";
 
 export const metadata = { title: "Usuarias" };
@@ -14,11 +14,15 @@ export default async function PaginaUsuarios({ searchParams }: PageProps<"/ajust
   const aviso = typeof p.aviso === "string" ? p.aviso : null;
   const error = typeof p.error === "string" ? p.error : null;
   const supabase = await clienteServidor();
-  const { data: perfiles } = await supabase.from("perfiles").select("*").order("creado_en");
+  const [{ data: perfiles }, { data: invitaciones }] = await Promise.all([
+    supabase.from("perfiles").select("*").order("creado_en"),
+    supabase.from("invitaciones").select("*").is("usada_en", null).order("creada_en", { ascending: false }),
+  ]);
+  const urlApp = process.env.NEXT_PUBLIC_APP_URL ?? "";
 
   return (
     <div className="space-y-4">
-      <Encabezado titulo="Usuarias" volver="/ajustes" subtitulo="La propietaria puede todo. La ayudante registra ventas y consulta inventario, pero no borra ni ve contabilidad." />
+      <Encabezado titulo="Usuarias" volver="/ajustes" subtitulo="Puede haber varias propietarias. La ayudante registra ventas y consulta inventario, pero no borra ni ve contabilidad." />
       {aviso && <Aviso tipo="exito">{aviso}</Aviso>}
       {error && <Aviso tipo="error">{error}</Aviso>}
 
@@ -58,9 +62,36 @@ export default async function PaginaUsuarios({ searchParams }: PageProps<"/ajust
         </ul>
       </Tarjeta>
 
-      <Tarjeta titulo="Invitar a una ayudante">
+      <Tarjeta titulo="Invitar a una persona">
         <FormularioInvitar />
+        <p className="mt-3 text-sm text-texto-suave">
+          Cómo entra la persona invitada: abre {urlApp || "la app"}, pulsa <strong>«Crear cuenta con invitación»</strong>, escribe el mismo correo y una contraseña, y confirma el correo que le llega. Entrará con el rol que elegiste.
+        </p>
       </Tarjeta>
+
+      {invitaciones && invitaciones.length > 0 && (
+        <Tarjeta titulo="Invitaciones pendientes">
+          <ul className="divide-y divide-borde">
+            {invitaciones.map((i) => (
+              <li key={i.id} className="flex flex-wrap items-center gap-3 py-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">{i.nombre || i.correo}</span>
+                  <span className="block text-sm text-texto-suave">
+                    {i.correo} · creada el {fecha(i.creada_en)}
+                  </span>
+                </span>
+                <Etiqueta tono={i.rol === "propietaria" ? "primario" : "neutro"}>{i.rol === "propietaria" ? "Propietaria" : "Ayudante"}</Etiqueta>
+                <form action={borrarInvitacion}>
+                  <input type="hidden" name="id" value={i.id} />
+                  <button type="submit" className="min-h-10 rounded-lg px-3 text-sm font-semibold text-peligro hover:bg-peligro-claro">
+                    Eliminar
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </Tarjeta>
+      )}
     </div>
   );
 }

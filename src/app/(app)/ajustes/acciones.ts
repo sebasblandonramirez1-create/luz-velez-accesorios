@@ -66,6 +66,7 @@ const esquemaEtiqueta = z.object({
   etiqueta_alto_mm: z.coerce.number().positive("El alto debe ser mayor que cero."),
   etiqueta_dpi: z.coerce.number().int().positive(),
   etiqueta_mostrar_precio_miles: z.boolean(),
+  etiqueta_lineas: z.array(z.enum(["negocio", "descripcion", "codigo_precio", "precio_publico"])).min(1, "Deja al menos una línea en la etiqueta."),
 });
 
 export async function guardarEtiqueta(_e: EstadoAjustes, fd: FormData): Promise<EstadoAjustes> {
@@ -77,6 +78,7 @@ export async function guardarEtiqueta(_e: EstadoAjustes, fd: FormData): Promise<
     etiqueta_alto_mm: String(fd.get("etiqueta_alto_mm") ?? "").replace(",", "."),
     etiqueta_dpi: fd.get("etiqueta_dpi") ?? 203,
     etiqueta_mostrar_precio_miles: fd.get("etiqueta_mostrar_precio_miles") === "on",
+    etiqueta_lineas: fd.getAll("etiqueta_lineas").map(String),
   });
   if (!datos.success) return { error: datos.error.issues[0]?.message };
   const supabase = await clienteServidor();
@@ -144,26 +146,49 @@ export async function cambiarRolUsuaria(fd: FormData) {
   redirect("/ajustes/usuarios?aviso=" + encodeURIComponent("Cuenta actualizada."));
 }
 
-/** Invita a una nueva usuaria por correo (requiere la clave de servicio en el servidor). */
+/**
+ * Invita a una nueva usuaria con el rol elegido. Siempre deja una invitación
+ * registrada (la persona puede crear su cuenta desde «Crear cuenta con
+ * invitación» en la pantalla de ingreso). Si el servidor tiene la clave de
+ * servicio, además le envía el correo de invitación de Supabase.
+ */
 export async function invitarUsuaria(_e: EstadoAjustes, fd: FormData): Promise<EstadoAjustes> {
   const p = await exigirPropietaria();
   if ("error" in p) return p;
   const correo = String(fd.get("correo") ?? "").trim().toLowerCase();
   const nombre = String(fd.get("nombre") ?? "").trim();
+  const rol = String(fd.get("rol") ?? "ayudante") === "propietaria" ? "propietaria" : "ayudante";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) return { error: "Escribe un correo válido." };
-  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    return { error: "Para invitar desde la app hace falta la clave de servicio en el servidor. Mientras tanto, crea la cuenta desde el panel de Supabase (ver README, «Cómo añadir una usuaria»)." };
-  }
-  const { clienteServicio } = await import("@/lib/supabase/servidor");
-  const admin = clienteServicio();
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const { error } = await admin.auth.admin.inviteUserByEmail(correo, {
-    data: { nombre },
-    redirectTo: `${base}/auth/callback?siguiente=${encodeURIComponent("/ajustes/contrasena")}`,
-  });
-  if (error) return { error: mensajeDeError(error) };
+  const supabase = await clienteServidor();
+  const { data: existente } = await supabase.from("perfiles").select("id").ilike("correo", correo).maybeSingle();
+  if (existente) return { error: "Ese correo ya tiene cuenta. Cambia su rol en la lista de arriba." };
+  const { error } = await supabase.from("invitaciones").insert({ correo, nombre, rol, creada_por: p.sesion!.id });
+  if (error) return { error: /duplicate/.test(error.message) ? "Ese correo ya tiene una invitación pendiente." : mensajeDeError(error) };
   revalidatePath("/ajustes/usuarios");
-  return { exito: `Invitación enviada a ${correo}. Entrará como ayudante; puedes cambiar su rol aquí cuando acepte.` };
+
+  const rolTexto = rol === "propietaria" ? "propietaria" : "ayudante";
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const { clienteServicio } = await import("@/lib/supabase/servidor");
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
+    const { error: e2 } = await clienteServicio().auth.admin.inviteUserByEmail(correo, {
+      data: { nombre },
+      redirectTo: `${base}/auth/callback?siguiente=${encodeURIComponent("/ajustes/contrasena")}`,
+    });
+    if (!e2) return { exito: `Invitación enviada por correo a ${correo}. Entrará como ${rolTexto}.` };
+  }
+  return {
+    exito: `Invitación creada para ${correo} como ${rolTexto}. Dile que entre a la app, pulse «Crear cuenta con invitación» y use ese mismo correo.`,
+  };
+}
+
+export async function borrarInvitacion(fd: FormData) {
+  const p = await exigirPropietaria();
+  if ("error" in p) redirect(`/ajustes/usuarios?error=${encodeURIComponent(p.error!)}`);
+  const id = String(fd.get("id") ?? "");
+  const supabase = await clienteServidor();
+  await supabase.from("invitaciones").delete().eq("id", id).is("usada_en", null);
+  revalidatePath("/ajustes/usuarios");
+  redirect("/ajustes/usuarios?aviso=" + encodeURIComponent("Invitación eliminada."));
 }
 
 export async function cambiarContrasena(_e: EstadoAjustes, fd: FormData): Promise<EstadoAjustes> {

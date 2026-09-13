@@ -15,7 +15,7 @@ formularios simples que funcionan desde el celular y el computador.
 | 1 | Proveedores verificados, modelo de datos, autenticación y roles, productos con fotos, movimientos de inventario, importación y exportación, ajustes, papelera, despliegue continuo | **Hecha y desplegada** en <https://luz-velez-accesorios.vercel.app> |
 | 2 | Ventas directas, consignación con liquidación, cuentas por cobrar, vistas de impresión iguales a las hojas actuales | **Hecha y desplegada** |
 | 3 | Gastos, compras, caja diaria, reportes y exportaciones a Excel y PDF | **Hecha y desplegada** |
-| 4 | Etiquetas e impresora NIIMBOT (Bluetooth, PNG y PDF) | Pendiente |
+| 4 | Etiquetas e impresora NIIMBOT (Bluetooth, PNG y PDF) | **Hecha y desplegada** (Bluetooth pendiente de probar con la impresora real) |
 | 5 | Copias de seguridad automáticas y restauración probada, PWA sin conexión, catálogo público, tutorial y guía | Pendiente |
 
 Las decisiones que dependían de la propietaria (impresora y rollo, regla de precio al
@@ -185,10 +185,12 @@ computador con `npx supabase db push` (o desde Actions si se activa la variable
 
 ## Cómo añadir una usuaria
 
-- Desde la app (propietaria): *Ajustes → Usuarias → Invitar a una ayudante*. Requiere
-  `SUPABASE_SERVICE_ROLE_KEY` en las variables de entorno del servidor. La invitada
-  recibe un correo, crea su contraseña y entra como **ayudante**.
-- Desde Supabase: *Authentication → Users → Add user*. También entra como ayudante.
+- Desde la app (propietaria): *Ajustes → Usuarias → Invitar a una persona*, eligiendo
+  el rol (ayudante o propietaria). La persona crea su cuenta desde la pantalla de ingreso
+  con «Crear cuenta con invitación». Con `SUPABASE_SERVICE_ROLE_KEY` en el servidor
+  también recibe el correo de invitación de Supabase.
+- Desde Supabase: *Authentication → Users → Add user* solo funciona si antes existe una
+  invitación para ese correo (la base rechaza registros sin invitación).
 - Para hacerla propietaria o desactivarla: *Ajustes → Usuarias*.
 
 Permisos: la **propietaria** puede todo. La **ayudante** registra ventas y movimientos,
@@ -197,10 +199,52 @@ ve la auditoría ni el historial de precios ni el costo de compra, y no cambia a
 
 ## Cómo cambiar el diseño de la etiqueta
 
-Los datos de la etiqueta (nombre del negocio, modelo de impresora, tamaño del rollo,
-DPI y si el código lleva el precio en miles como «SLA013 40») se cambian en *Ajustes →
-Etiqueta e impresora*. El diseño gráfico (orden de las cuatro líneas, tipografía) se
-construye en la Fase 4 y quedará descrito aquí.
+- **Desde la app** (*Ajustes → Etiqueta e impresora*): modelo de impresora, DPI, rollo
+  (lista de rollos habituales o medidas a mano), qué líneas lleva la etiqueta (nombre del
+  negocio, descripción en mayúsculas, código con precio en miles, precio al público) y si
+  el código lleva el precio en miles. La vista previa está en *Imprimir etiquetas*.
+- **En el código**: el texto de cada línea y su peso (cuánto alto ocupa) están en
+  `lineasDeEtiqueta` de `src/lib/etiquetas.ts`; el dibujo (fuentes, márgenes, centrado)
+  en `dibujarEtiqueta` de `src/components/etiqueta-canvas.tsx`. La fuente se reduce
+  automáticamente hasta que el texto cabe en el ancho.
+
+## Etiquetas e impresora NIIMBOT (Fase 4)
+
+Tres rutas de impresión, en *Imprimir etiquetas* (cola con varios productos y cantidad
+por producto):
+
+1. **Bluetooth directo** con la biblioteca abierta
+   [`@mmote/niimbluelib`](https://github.com/MultiMote/niimbluelib) (MIT, versión fijada
+   `0.46.0`, en estado alfa según sus autores). Usa la API Web Bluetooth, disponible en
+   Chrome y Edge en Android, Windows, macOS y Linux, y **no** en iPhone ni Safari
+   ([MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API)). La app
+   detecta el modelo al conectar y elige el algoritmo de impresión con `findPrintTask`;
+   si no lo reconoce, se puede forzar a mano. Modelos que los usuarios de la biblioteca
+   reportan funcionando por Bluetooth: D11, D101, D110, D110_M, B1, B1 Pro, B21, B21 Pro,
+   B18, M2 ([lista de modelos probados](https://github.com/MultiMote/niimbluelib/issues/1)).
+   El B3S no funciona por Bluetooth. **Advertencia de los autores:** el proyecto es
+   «con fines informativos y educativos» y no está afiliado al fabricante; la licencia es
+   MIT. Esta ruta no se ha podido probar con la impresora física desde el desarrollo:
+   queda pendiente de la primera prueba de la propietaria con su equipo.
+2. **PNG para la app oficial NIIMBOT**: un archivo por producto, al tamaño exacto del
+   rollo en píxeles (203 o 300 dpi), que se abre como imagen en la app del celular.
+   Funciona en iPhone. Es la ruta de respaldo definitiva si el Bluetooth falla.
+3. **Hoja PDF** para impresoras convencionales: `/imprimir/etiquetas` dibuja cada
+   etiqueta a su tamaño físico en milímetros; se imprime al 100 % o se guarda como PDF.
+
+Detalles técnicos: el tamaño en píxeles es `mm / 25,4 × dpi`; para impresoras «de lado»
+(D11, D110: cabezal de 96 px = 12 mm) el alto de la etiqueta va contra el cabezal y la
+imagen se gira 90° al codificar; para las «de frente» (B1, B21: cabezal de 384 px =
+48 mm) es el ancho. Si el rollo supera el cabezal hasta un 8 % (50 mm en la B1) se recorta
+el margen; si lo supera más, la app avisa y bloquea la impresión.
+
+## Usuarias e invitaciones
+
+Puede haber varias propietarias. En *Ajustes → Usuarias* la propietaria invita por
+correo eligiendo el rol; la persona invitada entra a la app, pulsa «Crear cuenta con
+invitación» y usa ese mismo correo (la base rechaza registros sin invitación). Si el
+servidor tiene `SUPABASE_SERVICE_ROLE_KEY`, además se envía el correo de invitación de
+Supabase. El rol también se puede cambiar después desde la misma pantalla.
 
 ## Cómo restaurar un respaldo
 

@@ -411,6 +411,17 @@ export type CajaDia = {
   cierre: CierreCaja | null;
 };
 
+export type Invitacion = {
+  id: string;
+  correo: string;
+  rol: RolUsuario;
+  nombre: string;
+  creada_por: string | null;
+  creada_en: string;
+  usada_en: string | null;
+  usada_por: string | null;
+};
+
 export type FilaPapelera = {
   tabla: string;
   id: string;
@@ -554,6 +565,7 @@ export type Database = {
         ];
       };
       cierres_caja: { Row: CierreCaja; Insert: Partial<CierreCaja>; Update: Partial<CierreCaja>; Relationships: [] };
+      invitaciones: { Row: Invitacion; Insert: Partial<Invitacion>; Update: Partial<Invitacion>; Relationships: [] };
       abonos: {
         Row: Abono;
         Insert: Partial<Abono>;

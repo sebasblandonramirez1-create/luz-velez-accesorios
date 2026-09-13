@@ -50,8 +50,19 @@ export async function iniciarPostgresDePruebas() {
     await pg.stop();
   }
 
-  /** Crea una usuaria en auth.users (dispara la creación del perfil) y devuelve su id. */
-  async function crearUsuaria(correo: string, nombre = "") {
+  /**
+   * Crea una usuaria en auth.users (dispara la creación del perfil) y devuelve su id.
+   * Desde la migración 7 el registro exige invitación cuando ya hay propietaria; por
+   * defecto se crea la invitación (con el rol indicado) antes de registrar.
+   */
+  async function crearUsuaria(correo: string, nombre = "", opciones: { rol?: "propietaria" | "ayudante"; invitar?: boolean } = {}) {
+    const invitar = opciones.invitar ?? true;
+    if (invitar) {
+      const hay = await cliente.query("select 1 from public.perfiles where rol = 'propietaria' limit 1");
+      if (hay.rowCount) {
+        await cliente.query("insert into public.invitaciones (correo, rol, nombre) values ($1, $2, $3)", [correo, opciones.rol ?? "ayudante", nombre]);
+      }
+    }
     const r = await cliente.query(
       "insert into auth.users (email, raw_user_meta_data) values ($1, $2) returning id",
       [correo, JSON.stringify({ nombre })],
