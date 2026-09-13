@@ -44,9 +44,13 @@ export function clienteServicio() {
 /** Usuaria autenticada y su perfil, o null. Se memoriza por petición. */
 export const sesionActual = cache(async (): Promise<{ id: string; correo: string; perfil: Perfil } | null> => {
   const supabase = await clienteServidor();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
-  const { data: perfil } = await supabase.from("perfiles").select("*").eq("id", data.user.id).maybeSingle();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) {
+    if (process.env.NODE_ENV !== "production" && error) console.error("[sesion] getUser:", error.message);
+    return null;
+  }
+  const { data: perfil, error: errorPerfil } = await supabase.from("perfiles").select("*").eq("id", data.user.id).maybeSingle();
+  if (errorPerfil && process.env.NODE_ENV !== "production") console.error("[sesion] perfil:", errorPerfil.message);
   if (!perfil || !perfil.activo) return null;
   return { id: data.user.id, correo: data.user.email ?? "", perfil };
 });

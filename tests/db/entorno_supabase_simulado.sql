@@ -44,7 +44,6 @@ create table if not exists storage.objects (
 );
 alter table storage.objects enable row level security;
 
-grant usage on schema public to anon, authenticated;
-alter default privileges in schema public grant all on tables to anon, authenticated;
-alter default privileges in schema public grant all on sequences to anon, authenticated;
-alter default privileges in schema public grant execute on functions to anon, authenticated;
+-- A propósito NO se conceden privilegios por defecto: cada migración debe
+-- otorgar los suyos de forma explícita (así ocurre en el proyecto alojado, donde
+-- la CLI aplica las migraciones con un rol distinto de postgres).

@@ -285,9 +285,8 @@ describe("políticas RLS", () => {
       await db.cliente.query("set role anon");
       r = await db.cliente.query("select codigo, precio_publico from public.catalogo_publico");
       expect(r.rows).toEqual([{ codigo: "SLA500", precio_publico: 118900 }]);
-      // anon no puede leer productos directamente
-      r = await db.cliente.query("select count(*)::int as n from public.productos");
-      expect(r.rows[0].n).toBe(0);
+      // anon no tiene ni siquiera permiso de lectura sobre las tablas
+      await expect(db.cliente.query("select count(*)::int as n from public.productos")).rejects.toThrow(/permission denied/);
     } finally {
       await db.cliente.query("reset role");
     }
