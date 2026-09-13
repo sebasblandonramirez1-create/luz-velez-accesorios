@@ -6,7 +6,15 @@ import { restaurarDePapelera } from "../acciones";
 
 export const metadata = { title: "Papelera" };
 
-const NOMBRES: Record<string, string> = { productos: "Producto", contactos: "Contacto", movimientos_inventario: "Movimiento" };
+const NOMBRES: Record<string, string> = {
+  productos: "Producto",
+  contactos: "Contacto",
+  movimientos_inventario: "Movimiento",
+  ventas: "Venta",
+  consignaciones: "Consignación",
+  liquidaciones: "Liquidación",
+  abonos: "Abono",
+};
 
 export default async function PaginaPapelera({ searchParams }: PageProps<"/ajustes/papelera">) {
   const sesion = (await sesionActual())!;

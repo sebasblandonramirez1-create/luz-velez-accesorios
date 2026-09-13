@@ -20,6 +20,9 @@ export default async function PaginaAjustes() {
 
       <nav aria-label="Secciones" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
+          ["/inventario", "☰ Inventario", true],
+          ["/contactos", "☺ Contactos", true],
+          ["/cuentas", "$ Cuentas por cobrar", true],
           ["/ajustes/usuarios", "👥 Usuarias", esPropietaria],
           ["/ajustes/papelera", "🗑️ Papelera", esPropietaria],
           ["/ajustes/contrasena", "🔑 Contraseña", true],

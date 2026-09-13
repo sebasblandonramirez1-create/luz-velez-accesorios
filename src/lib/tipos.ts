@@ -445,10 +445,10 @@ export type Database = {
       purgar_papelera: { Args: { dias?: number }; Returns: number };
       es_propietaria: { Args: Record<string, never>; Returns: boolean };
       rol_actual: { Args: Record<string, never>; Returns: RolUsuario | null };
-      registrar_venta: { Args: { p: Json }; Returns: string };
-      registrar_consignacion: { Args: { p: Json }; Returns: string };
-      registrar_liquidacion: { Args: { p: Json }; Returns: string };
-      registrar_abono: { Args: { p: Json }; Returns: string };
+      registrar_venta: { Args: { p: Record<string, unknown> }; Returns: string };
+      registrar_consignacion: { Args: { p: Record<string, unknown> }; Returns: string };
+      registrar_liquidacion: { Args: { p: Record<string, unknown> }; Returns: string };
+      registrar_abono: { Args: { p: Record<string, unknown> }; Returns: string };
     };
     Enums: {
       rol_usuario: RolUsuario;

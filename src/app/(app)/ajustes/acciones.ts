@@ -184,10 +184,11 @@ export async function restaurarDePapelera(fd: FormData) {
   if ("error" in p) redirect(`/ajustes/papelera?error=${encodeURIComponent(p.error!)}`);
   const tabla = String(fd.get("tabla") ?? "");
   const id = String(fd.get("id") ?? "");
-  if (!["productos", "contactos", "movimientos_inventario"].includes(tabla)) redirect("/ajustes/papelera");
+  const tablas = ["productos", "contactos", "movimientos_inventario", "ventas", "consignaciones", "liquidaciones", "abonos"] as const;
+  if (!(tablas as readonly string[]).includes(tabla)) redirect("/ajustes/papelera");
   const supabase = await clienteServidor();
   const { error } = await supabase
-    .from(tabla as "productos" | "contactos" | "movimientos_inventario")
+    .from(tabla as (typeof tablas)[number])
     .update({ eliminado_en: null })
     .eq("id", id);
   if (error) redirect(`/ajustes/papelera?error=${encodeURIComponent(mensajeDeError(error))}`);

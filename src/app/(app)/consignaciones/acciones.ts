@@ -1,0 +1,92 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { clienteServidor, sesionActual } from "@/lib/supabase/servidor";
+import { mensajeDeError } from "@/lib/errores";
+
+const esquemaConsignacion = z.object({
+  contacto_id: z.string().uuid("Elige la vendedora."),
+  fecha_entrega: z.string().optional(),
+  nota: z.string().default(""),
+  lineas: z.array(z.object({ producto_id: z.string().uuid(), cantidad: z.number().int().positive(), valor_unitario: z.number().int().min(0) })).min(1, "Añade al menos un producto."),
+});
+export type DatosConsignacion = z.infer<typeof esquemaConsignacion>;
+
+const esquemaLiquidacion = z.object({
+  consignacion_id: z.string().uuid(),
+  fecha: z.string().optional(),
+  nota: z.string().default(""),
+  abono: z.number().int().min(0),
+  medio_pago: z.enum(["efectivo", "transferencia", "nequi", "daviplata", "tarjeta", "otro"]),
+  lineas: z.array(z.object({ consignacion_linea_id: z.string().uuid(), cantidad_vendida: z.number().int().min(0), cantidad_devuelta: z.number().int().min(0) })),
+});
+export type DatosLiquidacion = z.infer<typeof esquemaLiquidacion>;
+
+function fechaIso(texto?: string) {
+  return texto && /^\d{4}-\d{2}-\d{2}$/.test(texto) ? new Date(`${texto}T12:00:00-05:00`).toISOString() : undefined;
+}
+
+function revalidar(id?: string) {
+  revalidatePath("/consignaciones");
+  if (id) revalidatePath(`/consignaciones/${id}`);
+  revalidatePath("/productos");
+  revalidatePath("/inventario");
+  revalidatePath("/cuentas");
+  revalidatePath("/contactos");
+  revalidatePath("/");
+}
+
+export async function registrarConsignacion(datos: DatosConsignacion): Promise<{ id?: string; error?: string }> {
+  const sesion = await sesionActual();
+  if (!sesion) return { error: "Tu sesión venció. Vuelve a entrar." };
+  const v = esquemaConsignacion.safeParse(datos);
+  if (!v.success) return { error: v.error.issues[0]?.message ?? "Revisa los datos." };
+  const supabase = await clienteServidor();
+  const { data, error } = await supabase.rpc("registrar_consignacion", { p: { ...v.data, fecha_entrega: fechaIso(v.data.fecha_entrega) } });
+  if (error) return { error: traducir(error) };
+  revalidar();
+  return { id: data as string };
+}
+
+export async function registrarLiquidacion(datos: DatosLiquidacion): Promise<{ id?: string; error?: string }> {
+  const sesion = await sesionActual();
+  if (!sesion) return { error: "Tu sesión venció. Vuelve a entrar." };
+  const v = esquemaLiquidacion.safeParse(datos);
+  if (!v.success) return { error: v.error.issues[0]?.message ?? "Revisa los datos." };
+  const supabase = await clienteServidor();
+  const { data, error } = await supabase.rpc("registrar_liquidacion", { p: { ...v.data, fecha: fechaIso(v.data.fecha) } });
+  if (error) return { error: traducir(error) };
+  revalidar(v.data.consignacion_id);
+  return { id: data as string };
+}
+
+export async function enviarConsignacionAPapelera(fd: FormData) {
+  const id = String(fd.get("id") ?? "");
+  const supabase = await clienteServidor();
+  const { error } = await supabase.from("consignaciones").update({ eliminado_en: new Date().toISOString() }).eq("id", id);
+  if (error) redirect(`/consignaciones/${id}?error=${encodeURIComponent(traducir(error))}`);
+  revalidar(id);
+  redirect("/consignaciones?aviso=" + encodeURIComponent("Entrega anulada: los productos volvieron al inventario."));
+}
+
+export async function anularLiquidacion(fd: FormData) {
+  const id = String(fd.get("id") ?? "");
+  const consignacionId = String(fd.get("consignacion_id") ?? "");
+  const supabase = await clienteServidor();
+  const { error } = await supabase.from("liquidaciones").update({ eliminado_en: new Date().toISOString() }).eq("id", id);
+  if (error) redirect(`/consignaciones/${consignacionId}?error=${encodeURIComponent(traducir(error))}`);
+  revalidar(consignacionId);
+  redirect(`/consignaciones/${consignacionId}?aviso=${encodeURIComponent("Liquidación anulada: las cantidades y las devoluciones se deshicieron.")}`);
+}
+
+function traducir(error: unknown): string {
+  const m = (error as { message?: string })?.message ?? "";
+  if (/CONSIGNACION_SIN_LINEAS/.test(m)) return "Añade al menos un producto.";
+  if (/LIQUIDACION_VACIA/.test(m)) return "Marca al menos una pieza vendida o devuelta, o registra un abono.";
+  if (/CONSIGNACION_CON_LIQUIDACIONES/.test(m)) return "Esta entrega ya tiene liquidaciones. Anula primero las liquidaciones.";
+  const x = /LIQUIDACION_EXCEDE: quedan (\d+) pendientes y se intentan liquidar (\d+)/.exec(m);
+  if (x) return `Solo quedan ${x[1]} piezas pendientes y se intentan liquidar ${x[2]}.`;
+  return mensajeDeError(error);
+}

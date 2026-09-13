@@ -5,14 +5,23 @@ import { usePathname } from "next/navigation";
 
 const ENLACES = [
   { href: "/", texto: "Inicio", icono: "⌂" },
+  { href: "/ventas", texto: "Ventas", icono: "▣" },
+  { href: "/consignaciones", texto: "Consignación", icono: "⇄" },
   { href: "/productos", texto: "Productos", icono: "◈" },
-  { href: "/inventario", texto: "Inventario", icono: "☰" },
-  { href: "/contactos", texto: "Contactos", icono: "☺" },
   { href: "/ajustes", texto: "Más", icono: "⋯" },
 ];
 
+/** Enlaces secundarios, solo en el menú lateral (en el celular viven en «Más»). */
+const SECUNDARIOS = [
+  { href: "/inventario", texto: "Inventario", icono: "☰" },
+  { href: "/contactos", texto: "Contactos", icono: "☺" },
+  { href: "/cuentas", texto: "Cuentas por cobrar", icono: "$" },
+];
+
 function activo(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  if (href === "/") return pathname === "/";
+  if (href === "/ajustes") return pathname.startsWith("/ajustes") || SECUNDARIOS.some((s) => pathname.startsWith(s.href));
+  return pathname.startsWith(href);
 }
 
 /** Barra inferior en pantallas pequeñas. */
@@ -62,8 +71,8 @@ export function MenuLateral({ nombreNegocio, nombreUsuaria, rol }: { nombreNegoc
       </div>
       <nav aria-label="Principal" className="flex-1 p-3">
         <ul className="space-y-1">
-          {ENLACES.map((e) => {
-            const esActivo = activo(pathname, e.href);
+          {[...ENLACES.slice(0, 4), ...SECUNDARIOS, ENLACES[4]].map((e) => {
+            const esActivo = e.href === "/ajustes" ? pathname.startsWith("/ajustes") : activo(pathname, e.href);
             return (
               <li key={e.href}>
                 <Link
