@@ -14,7 +14,7 @@ formularios simples que funcionan desde el celular y el computador.
 |---|---|---|
 | 1 | Proveedores verificados, modelo de datos, autenticación y roles, productos con fotos, movimientos de inventario, importación y exportación, ajustes, papelera, despliegue continuo | **Hecha y desplegada** en <https://luz-velez-accesorios.vercel.app> |
 | 2 | Ventas directas, consignación con liquidación, cuentas por cobrar, vistas de impresión iguales a las hojas actuales | **Hecha y desplegada** |
-| 3 | Gastos, compras, reportes y exportaciones a Excel y PDF | Pendiente |
+| 3 | Gastos, compras, caja diaria, reportes y exportaciones a Excel y PDF | **Hecha y desplegada** |
 | 4 | Etiquetas e impresora NIIMBOT (Bluetooth, PNG y PDF) | Pendiente |
 | 5 | Copias de seguridad automáticas y restauración probada, PWA sin conexión, catálogo público, tutorial y guía | Pendiente |
 
@@ -245,6 +245,30 @@ Ver `.env.example`. Nunca subas `.env.local` al repositorio (está en `.gitignor
   genera en el servidor para no añadir dependencias.
 - **WhatsApp.** El comprobante y el recordatorio de saldo son textos listos para
   pegar; el botón abre `wa.me` con el número del contacto (indicativo 57).
+
+## Gastos, compras, caja y reportes (Fase 3)
+
+- **Solo la propietaria** ve y registra compras, gastos, caja y reportes (RLS y comprobación
+  en las funciones). La ayudante sigue registrando ventas, entregas y abonos.
+- **Compras.** `compras` → `compra_lineas`; cada línea genera una entrada de inventario
+  con documento `compra`, actualiza `costo_compra` del producto y la compra registra
+  automáticamente un `gasto` de categoría «compra de mercancía» por su total. Anular una
+  compra devuelve las entradas salvo que ya se haya vendido parte (`COMPRA_YA_VENDIDA`).
+- **Gastos** con categoría, medio de pago, proveedor opcional y foto del soporte (carpeta
+  `gastos/` del bucket). Los gastos ligados a una compra se editan desde la compra.
+- **Caja del día** (`caja_del_dia`): ingresos = abonos del día por medio de pago; gastos
+  del día por medio; efectivo esperado = ingresos en efectivo − gastos en efectivo. El
+  cierre (`cerrar_caja`) guarda la foto del día, el efectivo contado y la diferencia; se
+  puede corregir el mismo día.
+- **Reportes** (`reporte_periodo(desde, hasta)`): ventas = ventas directas del período +
+  lo vendido en liquidaciones del período; por categoría; más vendidos; costo de lo
+  vendido con el `costo_compra` actual (se avisa cuántas piezas no tienen costo); margen
+  bruto = ventas − costo; utilidad estimada = margen − gastos operativos (todas las
+  categorías salvo compra de mercancía, que ya está en el costo); cobros por medio;
+  cuentas por cobrar y valor del inventario a base, público y costo (a hoy).
+- **Exportación.** Excel con un escritor `.xlsx` propio (`src/lib/xlsx.ts`, sobre
+  `fflate`, sin SheetJS): catálogo, inventario (existencias y movimientos) y reporte con
+  varias hojas. PDF: página de impresión `/imprimir/reportes` y «Guardar como PDF».
 
 ## Decisiones de diseño
 

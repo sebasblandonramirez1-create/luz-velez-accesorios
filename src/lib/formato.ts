@@ -15,7 +15,7 @@ const formatoPesos = new Intl.NumberFormat("es-CO", {
 
 /** 118900 → «118.900». Valores nulos → «0». */
 export function pesos(valor: number | null | undefined): string {
-  const n = Math.round(Number(valor ?? 0));
+  const n = Math.round(Number(valor ?? 0)) || 0; // «|| 0» convierte -0 en 0
   // es-CO usa punto de miles; se normaliza por si el entorno usa otro separador.
   return formatoPesos.format(n).replace(/,/g, ".").replace(/ /g, "");
 }

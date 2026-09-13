@@ -9,6 +9,8 @@ describe("pesos", () => {
     expect(pesos(0)).toBe("0");
     expect(pesos(null)).toBe("0");
     expect(pesos(999)).toBe("999");
+    expect(pesos(-0)).toBe("0");
+    expect(pesos(-118900)).toBe("-118.900");
   });
   it("redondea decimales", () => {
     expect(pesos(118900.4)).toBe("118.900");
