@@ -5,8 +5,11 @@
 project_id = "luz-velez-accesorios"
 
 [auth]
-site_url = "https://luz-velez-accesorios.vercel.app"
+site_url = "https://luzazul-accesorios.vercel.app"
 additional_redirect_urls = [
+  "https://luzazul-accesorios.vercel.app/auth/callback",
+  "https://luzazul-accesorios.vercel.app/**",
+  # Dirección anterior: se conserva mientras Vercel termina el cambio de nombre.
   "https://luz-velez-accesorios.vercel.app/auth/callback",
   "https://luz-velez-accesorios.vercel.app/**",
   "http://localhost:3000/auth/callback",

@@ -14,7 +14,7 @@ formularios simples que funcionan desde el celular y el computador.
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| 1 | Proveedores verificados, modelo de datos, autenticación y roles, productos con fotos, movimientos de inventario, importación y exportación, ajustes, papelera, despliegue continuo | **Hecha y desplegada** en <https://luz-velez-accesorios.vercel.app> |
+| 1 | Proveedores verificados, modelo de datos, autenticación y roles, productos con fotos, movimientos de inventario, importación y exportación, ajustes, papelera, despliegue continuo | **Hecha y desplegada** en <https://luzazul-accesorios.vercel.app> |
 | 2 | Ventas directas, consignación con liquidación, cuentas por cobrar, vistas de impresión iguales a las hojas actuales | **Hecha y desplegada** |
 | 3 | Gastos, compras, caja diaria, reportes y exportaciones a Excel y PDF | **Hecha y desplegada** |
 | 4 | Etiquetas e impresora NIIMBOT (Bluetooth, PNG y PDF) | **Hecha y desplegada** (Bluetooth pendiente de probar con la impresora real) |
@@ -134,8 +134,8 @@ contraseñas de terceros. Todo el proceso toma unos 30 minutos.
    (**anon** / *publishable*). Copia también la clave **service_role** (*secret*):
    solo va en el servidor y en GitHub.
 3. En *Authentication → URL Configuration* pon como *Site URL* la dirección donde
-   vivirá la app (por ejemplo `https://luz-velez.vercel.app`) y añade
-   `https://luz-velez.vercel.app/auth/callback` a *Redirect URLs*.
+   vivirá la app (por ejemplo `https://luzazul-accesorios.vercel.app`) y añade
+   `https://luzazul-accesorios.vercel.app/auth/callback` a *Redirect URLs*.
 4. En *Authentication → Providers → Email* deja activado *Email* y, para que la
    propietaria pueda entrar sin confirmar correo la primera vez, puedes desactivar
    *Confirm email* (recomendado volver a activarlo después).
@@ -179,7 +179,7 @@ Usuarias*).
 2. **Add New → Project → Import** `luz-velez-accesorios`. En *Environment Variables*
    añade `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
    `SUPABASE_SERVICE_ROLE_KEY` y `NEXT_PUBLIC_APP_URL` (la URL que Vercel asigne,
-   `https://luz-velez-accesorios.vercel.app` salvo que añada un sufijo). **Deploy**.
+   `https://luzazul-accesorios.vercel.app` salvo que añada un sufijo). **Deploy**.
 3. Vuelve a Supabase → *Authentication → URL Configuration* y pon esa URL como *Site
    URL* y `https://<url>/auth/callback` en *Redirect URLs* (o pídele a Claude que lo haga
    con `npx supabase config push`).

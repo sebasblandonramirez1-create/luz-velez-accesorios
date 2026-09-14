@@ -151,11 +151,11 @@ funcionan solas. Puedes verlas en la pestaña **Actions** del repositorio.
    | `NEXT_PUBLIC_SUPABASE_URL` | `https://tklopxvtbwzdgseacqyw.supabase.co` |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `sb_publishable_VKktmSYVsPQ8Egf0hox2zw_UREyov6g` |
    | `SUPABASE_SERVICE_ROLE_KEY` | la clave `sb_secret_…` **nueva** (de tu bloc de notas) |
-   | `NEXT_PUBLIC_APP_URL` | `https://luz-velez-accesorios.vercel.app` |
+   | `NEXT_PUBLIC_APP_URL` | `https://luzazul-accesorios.vercel.app` |
 
 4. Pulsa **Deploy**. Espera 2 o 3 minutos hasta ver confeti y una vista previa.
 5. Pulsa **Continue to Dashboard**. Arriba verás la dirección real (*Domains*), por
-   ejemplo `luz-velez-accesorios.vercel.app`. Cópiala y mándasela a Claude por el chat:
+   ejemplo `luzazul-accesorios.vercel.app`. Cópiala y mándasela a Claude por el chat:
    con eso se registran las direcciones de autenticación en Supabase y se comprueba el
    ingreso. Si la dirección tiene un sufijo distinto, corrige `NEXT_PUBLIC_APP_URL` en
    *Settings → Environment Variables* y vuelve a desplegar (*Deployments → ⋯ →
