@@ -52,5 +52,5 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Todo salvo archivos estáticos e imágenes.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|webmanifest)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml|webmanifest|pdf)$).*)"],
 };
