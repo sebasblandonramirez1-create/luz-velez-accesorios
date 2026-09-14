@@ -21,9 +21,12 @@ export function dibujarEtiqueta(canvas: HTMLCanvasElement, producto: ProductoEti
   const margen = Math.max(2, Math.round(t.anchoPx * 0.03));
   const anchoUtil = t.anchoPx - margen * 2;
   const altoUtil = t.altoPx - margen * 2;
-  const fuente = (l: { negrita: boolean; monoespaciada: boolean }, tam: number) =>
-    `${l.negrita ? "bold " : ""}${tam}px ${l.monoespaciada ? "ui-monospace, Menlo, Consolas, monospace" : "Arial, Helvetica, sans-serif"}`;
-  const lineas = lineasDeEtiqueta(producto, cfg);
+  const marca = typeof document !== "undefined" && document.fonts?.check?.("12px Cinzel");
+  const fuente = (l: { negrita: boolean; monoespaciada: boolean; tipo?: string }, tam: number) => {
+    if (l.tipo === "negocio" && marca) return `600 ${tam}px Cinzel, Georgia, serif`;
+    return `${l.negrita ? "bold " : ""}${tam}px ${l.monoespaciada ? "ui-monospace, Menlo, Consolas, monospace" : "Arial, Helvetica, sans-serif"}`;
+  };
+  const lineas = lineasDeEtiqueta(producto, cfg).map((l) => (l.tipo === "negocio" ? { ...l, texto: l.texto.toUpperCase() } : l));
   const ajuste = ajustarLineas(lineas, anchoUtil, altoUtil, (l, tam) => {
     ctx.font = fuente(l, tam);
     return ctx.measureText(l.texto).width;

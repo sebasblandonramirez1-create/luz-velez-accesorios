@@ -1,24 +1,26 @@
 @import "tailwindcss";
 
-/* Paleta del negocio: vino rosado como color principal, dorado como acento,
-   fondos cálidos. Contraste AA en texto sobre fondo. */
+/* Paleta tomada de la tarjeta de Luzazul: cartón kraft de fondo, acuarela
+   turquesa y letras doradas. Contraste AA en el texto y los botones. */
 :root {
-  --fondo: #faf7f5;
-  --superficie: #ffffff;
-  --texto: #2b2227;
-  --texto-suave: #6b5c64;
-  --borde: #e6dcdf;
-  --primario: #8f2f5a;
-  --primario-oscuro: #6f2346;
-  --primario-claro: #f7e6ee;
-  --acento: #b8923a;
-  --acento-claro: #f6efdc;
+  --fondo: #f3ede2; /* kraft claro */
+  --superficie: #fffdf9;
+  --texto: #3a2f22;
+  --texto-suave: #7a6a58;
+  --borde: #e2d7c6;
+  --primario: #8a6a2d; /* dorado oscuro (botones, enlaces) */
+  --primario-oscuro: #6c5121;
+  --primario-claro: #f4ecdc;
+  --acento: #4fb5a6; /* turquesa acuarela */
+  --acento-claro: #dff3ef;
   --exito: #1f7a4d;
   --exito-claro: #e2f3e9;
   --alerta: #9a5b00;
   --alerta-claro: #fff1d6;
   --peligro: #b3261e;
   --peligro-claro: #fbe4e2;
+  --oro: #b08d57; /* dorado del logo, para adornos */
+  --turquesa-suave: #bfe9e1;
 }
 
 @theme inline {
@@ -38,7 +40,11 @@
   --color-alerta-claro: var(--alerta-claro);
   --color-peligro: var(--peligro);
   --color-peligro-claro: var(--peligro-claro);
+  --color-oro: var(--oro);
+  --color-turquesa-suave: var(--turquesa-suave);
   --font-sans: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-marca: var(--font-cinzel), "Cinzel", Georgia, serif;
+  --font-marca-sub: var(--font-josefin), "Josefin Sans", "Segoe UI", sans-serif;
 }
 
 /* Tamaño de letra ajustable desde Ajustes (se guarda en el navegador). */
@@ -73,10 +79,32 @@ body {
 }
 select.campo {
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b5c64' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a6a58' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
   background-repeat: no-repeat;
   background-position: right 1rem center;
   padding-right: 2.75rem;
+}
+
+/* Marca: la palabra LUZAZUL como en el logo (Cinzel, mayúsculas, espaciada) y
+   «accesorios» en Josefin Sans fina. Fondo acuarela opcional. */
+.marca-titulo {
+  font-family: var(--font-marca);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.marca-sub {
+  font-family: var(--font-marca-sub);
+  letter-spacing: 0.32em;
+  text-transform: lowercase;
+  font-weight: 300;
+}
+.acuarela {
+  background-color: var(--fondo);
+  background-image:
+    radial-gradient(ellipse 45% 35% at 18% 28%, rgba(79, 181, 166, 0.35), transparent 70%),
+    radial-gradient(ellipse 40% 45% at 82% 70%, rgba(79, 181, 166, 0.28), transparent 70%),
+    radial-gradient(ellipse 30% 30% at 60% 15%, rgba(191, 233, 225, 0.6), transparent 70%);
 }
 
 /* Impresión: solo el contenido marcado. */

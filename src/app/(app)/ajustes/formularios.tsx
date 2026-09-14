@@ -201,7 +201,15 @@ function SeccionCatalogo({ ajustes, urlApp }: { ajustes: Ajustes; urlApp: string
         <Mensajes estado={estado} />
         <Casilla etiqueta="Activar el catálogo público" name="catalogo_publico_activo" defaultChecked={ajustes.catalogo_publico_activo} ayuda="Una página con fotos, nombres y precios al público de los productos marcados como visibles. No muestra stock ni precios base." />
         <Campo etiqueta="Dirección del catálogo" name="catalogo_slug" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} ayuda={`${urlApp || "https://tu-app"}/catalogo/${slug}`} />
-        <p className="text-sm text-texto-suave">La página del catálogo se activa en la Fase 5. Puedes ir marcando productos como visibles desde ya.</p>
+        {ajustes.catalogo_publico_activo && (
+          <p className="text-sm">
+            Comparte este enlace por WhatsApp:{" "}
+            <a href={`/catalogo/${ajustes.catalogo_slug}`} target="_blank" rel="noopener" className="font-semibold text-primario break-all">
+              {urlApp || ""}/catalogo/{ajustes.catalogo_slug}
+            </a>
+          </p>
+        )}
+        <p className="text-sm text-texto-suave">Se muestran solo los productos marcados «Mostrar en el catálogo público», con foto, nombre y precio al público. Nunca el stock ni el precio base.</p>
         <BotonEnviar grande={false} className="sm:w-auto">
           Guardar
         </BotonEnviar>
@@ -222,7 +230,7 @@ function SeccionRespaldo({ ajustes }: { ajustes: Ajustes }) {
           <option value="r2">Almacenamiento aparte (Cloudflare R2)</option>
         </Selector>
         <p className="text-sm text-texto-suave">
-          Última copia automática: <strong>{ajustes.ultimo_respaldo_en ? new Date(ajustes.ultimo_respaldo_en).toLocaleString("es-CO", { timeZone: "America/Bogota" }) : "ninguna todavía"}</strong>. La copia automática y el botón de exportación completa se configuran en la Fase 5.
+          Última copia automática: <strong>{ajustes.ultimo_respaldo_en ? new Date(ajustes.ultimo_respaldo_en).toLocaleString("es-CO", { timeZone: "America/Bogota" }) : "ninguna todavía"}</strong>. Ver <a href="/ajustes/respaldos" className="font-semibold text-primario">Copias de seguridad</a> para descargar un respaldo completo ahora.
         </p>
         <BotonEnviar grande={false} className="sm:w-auto">
           Guardar

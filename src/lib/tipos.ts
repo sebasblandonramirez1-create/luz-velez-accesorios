@@ -598,6 +598,7 @@ export type Database = {
       caja_del_dia: { Args: { p_dia: string }; Returns: CajaDia };
       cerrar_caja: { Args: { p_dia: string; p_efectivo_contado: number; p_nota?: string }; Returns: string };
       reporte_periodo: { Args: { p_desde: string; p_hasta: string }; Returns: Reporte };
+      datos_publicos_negocio: { Args: Record<string, never>; Returns: { nombre_negocio: string; telefono_negocio: string; catalogo_slug: string; catalogo_publico_activo: boolean }[] };
     };
     Enums: {
       rol_usuario: RolUsuario;

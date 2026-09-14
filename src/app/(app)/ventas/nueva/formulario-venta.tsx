@@ -10,7 +10,8 @@ import { MiniaturaProducto } from "@/components/miniatura";
 import { hoyIso, pesos } from "@/lib/formato";
 import { MEDIOS_PAGO, TIPOS_CONTACTO, type MedioPago, type TipoContacto } from "@/lib/tipos";
 import { subtotalLinea, totalesCarrito, validarCarrito, type LineaCarrito } from "@/lib/ventas";
-import { registrarVenta } from "../acciones";
+import { registrarVenta, type DatosVenta } from "../acciones";
+import { encolarPendiente, esErrorDeRed } from "@/lib/pendientes";
 
 type ProductoVenta = ProductoBuscable & { precio_publico: number };
 
@@ -57,7 +58,7 @@ export function FormularioVenta({ productos, contactos }: { productos: ProductoV
     if (estadoPago === "abono" && (!abono || abono <= 0 || abono >= totales.total)) return setError("El abono debe ser mayor que cero y menor que el total.");
     setEnviando(true);
     setError(null);
-    const r = await registrarVenta({
+    const datos: DatosVenta = {
       fecha,
       contacto_id: contactoId || null,
       descuento_total: descuentoTotal ?? 0,
@@ -66,9 +67,22 @@ export function FormularioVenta({ productos, contactos }: { productos: ProductoV
       abono: estadoPago === "abono" ? (abono ?? 0) : 0,
       nota,
       lineas: lineas.map((l) => ({ producto_id: l.producto_id, cantidad: l.cantidad, precio_unitario: l.precio_unitario, descuento: l.descuento })),
-    });
+    };
+    let r: { id?: string; error?: string };
+    try {
+      r = await registrarVenta(datos);
+    } catch (e) {
+      r = { error: (e as Error).message };
+    }
     setEnviando(false);
-    if (r.error) return setError(r.error);
+    if (r.error) {
+      if (esErrorDeRed(r.error)) {
+        encolarPendiente("venta", datos, `Venta de ${totales.unidades} piezas por ${pesos(totales.total)}`);
+        router.push("/ventas?aviso=" + encodeURIComponent("Sin conexión: la venta quedó guardada en el celular y se enviará sola cuando vuelva el internet."));
+        return;
+      }
+      return setError(r.error);
+    }
     router.push(`/ventas/${r.id}?nueva=1`);
   }
 

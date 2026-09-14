@@ -43,7 +43,7 @@ export default async function PaginaCuentasContacto({ params, searchParams }: Pa
 
   const abiertas = (cuentas ?? []).filter((c) => c.saldo > 0);
   const saldo = abiertas.reduce((s, c) => s + c.saldo, 0);
-  const negocio = ajustes?.nombre_negocio ?? "Luz Vélez Accesorios";
+  const negocio = ajustes?.nombre_negocio ?? "Luzazul Accesorios";
   const recordatorio = textoRecordatorioSaldo(negocio, contacto.nombre, saldo, abiertas.map((c) => ({ descripcion: describir(c).texto, saldo: c.saldo })));
   const volver = `/cuentas/${contactoId}`;
 

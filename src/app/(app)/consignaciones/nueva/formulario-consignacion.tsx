@@ -8,7 +8,8 @@ import { BuscadorProducto, type ProductoBuscable } from "@/components/buscador-p
 import { MiniaturaProducto } from "@/components/miniatura";
 import { hoyIso, pesos } from "@/lib/formato";
 import { TIPOS_CONTACTO, type TipoContacto } from "@/lib/tipos";
-import { registrarConsignacion } from "../acciones";
+import { registrarConsignacion, type DatosConsignacion } from "../acciones";
+import { encolarPendiente, esErrorDeRed } from "@/lib/pendientes";
 
 type ProductoEntrega = ProductoBuscable & { precio_base: number };
 interface Linea {
@@ -66,14 +67,28 @@ export function FormularioConsignacion({
     }
     setEnviando(true);
     setError(null);
-    const r = await registrarConsignacion({
+    const datos: DatosConsignacion = {
       contacto_id: contactoId,
       fecha_entrega: fecha,
       nota,
       lineas: lineas.map((l) => ({ producto_id: l.producto_id, cantidad: l.cantidad, valor_unitario: l.valor_unitario })),
-    });
+    };
+    let r: { id?: string; error?: string };
+    try {
+      r = await registrarConsignacion(datos);
+    } catch (e) {
+      r = { error: (e as Error).message };
+    }
     setEnviando(false);
-    if (r.error) return setError(r.error);
+    if (r.error) {
+      if (esErrorDeRed(r.error)) {
+        const nombre = contactos.find((c) => c.id === contactoId)?.nombre ?? "vendedora";
+        encolarPendiente("consignacion", datos, `Entrega a ${nombre} de ${piezas} piezas`);
+        router.push("/consignaciones?aviso=" + encodeURIComponent("Sin conexión: la entrega quedó guardada en el celular y se enviará sola cuando vuelva el internet."));
+        return;
+      }
+      return setError(r.error);
+    }
     router.push(`/consignaciones/${r.id}?nueva=1`);
   }
 

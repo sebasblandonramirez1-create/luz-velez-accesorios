@@ -28,6 +28,7 @@ export default async function PaginaAjustes() {
           ["/caja", "▤ Caja del día", esPropietaria],
           ["/reportes", "≣ Reportes", esPropietaria],
           ["/ajustes/usuarios", "👥 Usuarias", esPropietaria],
+          ["/ajustes/respaldos", "💾 Copias de seguridad", esPropietaria],
           ["/ajustes/papelera", "🗑️ Papelera", esPropietaria],
           ["/ajustes/contrasena", "🔑 Contraseña", true],
           ["/ajustes/ayuda", "📖 Ayuda", true],

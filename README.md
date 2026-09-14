@@ -1,6 +1,8 @@
-# Luz Vélez Accesorios · aplicación de inventario, ventas y consignación
+# Luzazul Accesorios · aplicación de inventario, ventas y consignación
 
-Aplicación web para el negocio de joyería y accesorios **Luz Vélez Accesorios**.
+Aplicación web para el negocio de joyería y accesorios **Luzazul Accesorios** (antes
+«Luz Vélez Accesorios»; el nombre del proyecto, el repositorio y la URL conservan el
+identificador `luz-velez-accesorios`).
 Reemplaza las hojas impresas de Excel (VENTAS, DEVOLUCIONES, PENDIENTE DE PAGO) con
 formularios simples que funcionan desde el celular y el computador.
 
@@ -16,7 +18,7 @@ formularios simples que funcionan desde el celular y el computador.
 | 2 | Ventas directas, consignación con liquidación, cuentas por cobrar, vistas de impresión iguales a las hojas actuales | **Hecha y desplegada** |
 | 3 | Gastos, compras, caja diaria, reportes y exportaciones a Excel y PDF | **Hecha y desplegada** |
 | 4 | Etiquetas e impresora NIIMBOT (Bluetooth, PNG y PDF) | **Hecha y desplegada** (Bluetooth pendiente de probar con la impresora real) |
-| 5 | Copias de seguridad automáticas y restauración probada, PWA sin conexión, catálogo público, tutorial y guía | Pendiente |
+| 5 | Copias de seguridad automáticas y restauración probada, PWA sin conexión, catálogo público, tutorial y guía | **Hecha y desplegada** (el destino de la copia diaria lo configura la propietaria; ver abajo) |
 
 Las decisiones que dependían de la propietaria (impresora y rollo, regla de precio al
 público, mostrar el precio en miles en la etiqueta, destino del respaldo, catálogo
@@ -75,6 +77,16 @@ foto puede verla (hace falta para el catálogo público y simplifica la app). La
 no contienen datos sensibles; el stock, los costos y los precios base nunca salen del
 bucket. La escritura exige sesión iniciada.
 
+## Identidad visual
+
+Tomada de la tarjeta del negocio: cartón kraft (`--fondo #f3ede2`), acuarela turquesa
+(`--acento #4fb5a6`) y letras doradas (`--primario #8a6a2d`, `--oro #b08d57`). La marca
+(`src/components/marca.tsx`) escribe LUZAZUL en **Cinzel** con el aro del logo en lugar de
+la A central, dentro del marco redondeado, y «accesorios» en **Josefin Sans** fina y
+espaciada; ambas fuentes se sirven con `next/font/google`. Los iconos de la app son el
+aro dorado sobre kraft con acuarela. Para cambiar la paleta basta editar las variables
+de `src/app/globals.css`.
+
 ## Estructura del repositorio
 
 ```
@@ -85,10 +97,10 @@ src/lib/               formato de pesos y fechas, precios, códigos, inventario,
 src/components/        botones, campos, navegación, subida de fotos, buscador de producto
 src/proxy.ts           refresca la sesión y protege las rutas
 tests/                 pruebas Vitest; tests/db levanta un Postgres embebido y aplica las migraciones
-scripts/               utilidades (preparar Postgres embebido)
+scripts/               respaldo.mts, restaurar.mts, guia.mts, preparar Postgres embebido
 docs/                  ejemplo de CSV para importar
 src/app/imprimir/      vistas de impresión (comprobante de venta, hojas de consignación)
-.github/workflows/     CI y «mantener activo»
+.github/workflows/     CI, «mantener activo» y respaldo diario
 ```
 
 ## Desarrollo local
@@ -246,13 +258,75 @@ invitación» y usa ese mismo correo (la base rechaza registros sin invitación)
 servidor tiene `SUPABASE_SERVICE_ROLE_KEY`, además se envía el correo de invitación de
 Supabase. El rol también se puede cambiar después desde la misma pantalla.
 
+## Copias de seguridad
+
+Tres mecanismos, todos con el mismo formato de archivo (`respaldo-aaaa-mm-dd.zip`:
+`meta.json`, `datos/<tabla>.json` y `.csv` por cada tabla, y `fotos/…`):
+
+1. **Copia automática diaria** (`.github/workflows/respaldo.yml`, 03:30 de Bogotá):
+   `scripts/respaldo.mts` lee todas las tablas por conexión directa a Postgres, descarga las
+   fotos del bucket y sube el zip a un destino **fuera de Supabase**. Conserva 30 copias
+   diarias y la primera de cada mes durante 12 meses (`copiasParaBorrar`). Al terminar
+   anota la fecha en `ajustes.ultimo_respaldo_en`; el tablero avisa si pasan 48 horas.
+   Configuración (GitHub → Settings → Secrets and variables → Actions):
+   - Secreto `SUPABASE_DB_URL`: Supabase → botón **Connect** → *Session pooler* (IPv4).
+   - Variable `RESPALDO_DESTINO` = `r2` o `drive` (sin ella, la copia queda como artefacto
+     del flujo durante 90 días, que sirve de red de seguridad mínima).
+   - **Cloudflare R2** (10 GB gratis, [precios](https://developers.cloudflare.com/r2/pricing/)):
+     crear un bucket privado y un token de API con permiso de lectura y escritura; secretos
+     `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`.
+   - **Google Drive de la propietaria**: crear un proyecto en Google Cloud con la API de
+     Drive, credenciales OAuth «aplicación de escritorio», obtener un *refresh token* con el
+     alcance `drive.file` (por ejemplo con OAuth Playground) y la carpeta destino; secretos
+     `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`,
+     `GOOGLE_DRIVE_FOLDER_ID`.
+2. **Descarga manual** desde la app (*Ajustes → Copias de seguridad*): el servidor entrega
+   las tablas y el navegador descarga las fotos y arma el zip (sin límite de tamaño del
+   servidor).
+3. **Restauración**: `scripts/restaurar.mts` (abajo).
+
 ## Cómo restaurar un respaldo
 
-Las copias automáticas y el procedimiento probado de restauración se construyen en la
-Fase 5. Mientras tanto, Supabase hace copias diarias propias en el plan gratuito solo
-durante 7 días; **exporta el catálogo y el inventario** desde la app (*Productos →
-Exportar*, *Inventario → Exportar*) si vas a hacer cambios grandes. Tras cualquier
-restauración, ejecuta en SQL `select public.recalcular_todo_el_stock();`.
+1. Ten un proyecto de Supabase con las migraciones aplicadas (`npx supabase db push`).
+2. En la terminal, en la carpeta del proyecto:
+
+   ```bash
+   SUPABASE_DB_URL='postgres://…' NEXT_PUBLIC_SUPABASE_URL='https://….supabase.co' SUPABASE_SERVICE_ROLE_KEY='…' node scripts/restaurar.mts respaldo-2026-09-13.zip
+   ```
+
+   Sin `--confirmar` solo muestra el contenido. Con `--confirmar` **reemplaza todo** el
+   contenido de las tablas por el del respaldo (dentro de una transacción: si algo falla,
+   no queda nada a medias), ajusta la numeración de ventas, consignaciones y compras,
+   recalcula el stock y vuelve a subir las fotos (`--sin-fotos` para omitirlas).
+3. Las cuentas de usuarias no se restauran (viven en la autenticación de Supabase): crea la
+   de la propietaria en *Authentication → Users*; será propietaria por ser la primera, y
+   desde *Ajustes → Usuarias* invita a las demás.
+
+Está probado automáticamente: `tests/db/restaurar.test.ts` exporta una base con actividad
+y la restaura idéntica en una vacía, y `tests/db/scripts_respaldo.test.ts` ejecuta los dos
+scripts reales de punta a punta contra Postgres embebidos.
+
+## Modo sin conexión (PWA)
+
+`public/sw.js` guarda los archivos estáticos y la última copia de cada pantalla visitada;
+sin red se muestran en solo lectura o aparece `/sin-conexion`. Las ventas y entregas en
+consignación registradas sin red se guardan en el celular (`src/lib/pendientes.ts`) y el
+componente `SincronizarPendientes` las envía solas cuando vuelve la conexión, mostrando
+cuántas faltan y permitiendo descartarlas. Las demás operaciones exigen conexión.
+
+## Catálogo público
+
+`/catalogo/<dirección>` (la dirección se fija en *Ajustes → Catálogo público*). Lee la
+vista `catalogo_publico` con la clave anónima: solo productos activos marcados como
+visibles, con foto, nombre, material, color y precio al público; nunca stock ni precios
+base. Cada pieza tiene un botón «Pedir» que abre WhatsApp al teléfono del negocio.
+
+## Tutorial y guía
+
+Al entrar por primera vez en un navegador aparece un tutorial de cinco pasos (se puede
+repetir desde *Ajustes → Ayuda*). La guía rápida de dos páginas con capturas está en
+`public/guia-propietaria.pdf` (enlace en Ayuda) y se regenera con `node scripts/guia.mts`
+con la app corriendo en local.
 
 ## Variables de entorno
 

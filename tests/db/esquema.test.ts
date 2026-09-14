@@ -59,7 +59,7 @@ describe("perfiles y roles", () => {
   it("los ajustes existen con una sola fila", async () => {
     const r = await db.cliente.query("select * from public.ajustes");
     expect(r.rows).toHaveLength(1);
-    expect(r.rows[0].nombre_negocio).toBe("Luz Vélez Accesorios");
+    expect(r.rows[0].nombre_negocio).toBe("Luzazul Accesorios");
     await expect(db.cliente.query("insert into public.ajustes (id) values (2)")).rejects.toThrow();
   });
 });
@@ -240,7 +240,7 @@ describe("políticas RLS", () => {
 
       // la propietaria sí
       await db.iniciarSesion(propietaria);
-      await db.cliente.query("update public.ajustes set nombre_negocio = 'Luz Vélez Accesorios' where id = 1");
+      await db.cliente.query("update public.ajustes set nombre_negocio = 'Luzazul Accesorios' where id = 1");
       r = await db.cliente.query("select count(*)::int as n from public.auditoria");
       expect(r.rows[0].n).toBeGreaterThan(0);
     } finally {

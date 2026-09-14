@@ -33,7 +33,7 @@ export default async function PaginaVenta({ params, searchParams }: PageProps<"/
   });
   const saldo = cuenta?.saldo ?? 0;
   const abonos = ((cuenta?.abonos as unknown as { id: string; fecha: string; valor: number; medio_pago: keyof typeof MEDIOS_PAGO; nota: string; eliminado_en: string | null }[]) ?? []).filter((a) => !a.eliminado_en);
-  const negocio = ajustes?.nombre_negocio ?? "Luz Vélez Accesorios";
+  const negocio = ajustes?.nombre_negocio ?? "Luzazul Accesorios";
   const texto = textoComprobanteVenta(negocio, {
     numero: venta.numero,
     fecha: venta.fecha,

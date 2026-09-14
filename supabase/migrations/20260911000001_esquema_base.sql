@@ -1,5 +1,5 @@
 -- =============================================================================
--- Luz Vélez Accesorios · Migración 1: esquema base (Fase 1)
+-- Luzazul Accesorios · Migración 1: esquema base (Fase 1)
 --
 -- Contiene: perfiles y roles, ajustes del negocio, contactos, productos con
 -- fotos e historial de precios, movimientos de inventario con stock calculado
@@ -128,7 +128,7 @@ $$;
 -- -----------------------------------------------------------------------------
 create table public.ajustes (
   id                       integer primary key default 1 check (id = 1),
-  nombre_negocio           text not null default 'Luz Vélez Accesorios',
+  nombre_negocio           text not null default 'Luzazul Accesorios',
   telefono_negocio         text not null default '',
   -- Códigos
   prefijo_general          text not null default 'SLA',

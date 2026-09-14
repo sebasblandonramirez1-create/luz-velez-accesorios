@@ -1,4 +1,5 @@
 import { Encabezado, Tarjeta } from "@/components/ui";
+import { BotonVerTutorial } from "@/components/tutorial";
 
 export const metadata = { title: "Ayuda" };
 
@@ -6,6 +7,12 @@ export default function PaginaAyuda() {
   return (
     <div className="space-y-4">
       <Encabezado titulo="Ayuda" volver="/ajustes" />
+      <div className="flex flex-wrap gap-2">
+        <BotonVerTutorial />
+        <a href="/guia-propietaria.pdf" target="_blank" rel="noopener" className="inline-flex min-h-12 items-center rounded-xl bg-primario px-4 font-semibold text-white">
+          📄 Guía rápida en PDF
+        </a>
+      </div>
       <Tarjeta titulo="Cómo empezar">
         <ol className="list-decimal space-y-2 pl-5">
           <li>

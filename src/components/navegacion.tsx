@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Marca } from "./marca";
 
 const ENLACES = [
   { href: "/", texto: "Inicio", icono: "⌂" },
@@ -71,9 +72,10 @@ export function MenuLateral({ nombreNegocio, nombreUsuaria, rol }: { nombreNegoc
   const pathname = usePathname();
   return (
     <aside className="no-imprimir hidden w-64 shrink-0 flex-col border-r border-borde bg-superficie md:flex">
-      <div className="border-b border-borde p-5">
-        <div className="text-lg font-bold leading-tight">{nombreNegocio}</div>
-        <div className="mt-1 text-sm text-texto-suave">
+      <div className="acuarela border-b border-borde p-5 text-center">
+        <Marca tamano="md" />
+        <span className="sr-only">{nombreNegocio}</span>
+        <div className="mt-2 text-sm text-texto-suave">
           {nombreUsuaria} · {rol === "propietaria" ? "Propietaria" : "Ayudante"}
         </div>
       </div>

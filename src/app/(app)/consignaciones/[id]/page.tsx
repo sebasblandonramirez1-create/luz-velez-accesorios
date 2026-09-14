@@ -36,7 +36,7 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
   const hojas = hojasConsignacion(filas);
   const saldo = cuenta?.saldo ?? 0;
   const abonos = ((cuenta?.abonos as unknown as { id: string; fecha: string; valor: number; medio_pago: keyof typeof MEDIOS_PAGO; nota: string; eliminado_en: string | null }[]) ?? []).filter((a) => !a.eliminado_en);
-  const negocio = ajustes?.nombre_negocio ?? "Luz Vélez Accesorios";
+  const negocio = ajustes?.nombre_negocio ?? "Luzazul Accesorios";
   const recordatorio = textoRecordatorioSaldo(negocio, contacto.nombre, saldo, [{ descripcion: `Consignación ${numeroDocumento("C", c.numero)} del ${fecha(c.fecha_entrega)}`, saldo }]);
   const esPropietaria = sesion.perfil.rol === "propietaria";
 

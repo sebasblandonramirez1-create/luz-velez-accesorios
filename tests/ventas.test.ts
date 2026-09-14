@@ -47,7 +47,7 @@ describe("carrito", () => {
 
 describe("textos de WhatsApp", () => {
   it("comprobante de venta", () => {
-    const t = textoComprobanteVenta("Luz Vélez Accesorios", {
+    const t = textoComprobanteVenta("Luzazul Accesorios", {
       numero: 3,
       fecha: "2026-09-13T15:00:00Z",
       total: 230900,
@@ -56,7 +56,7 @@ describe("textos de WhatsApp", () => {
       saldo: 0,
       lineas: [{ nombre: "Aretas perla", codigo: "SLA013", cantidad: 2, precio_unitario: 118900, descuento: 0 }],
     });
-    expect(t).toContain("*Luz Vélez Accesorios*");
+    expect(t).toContain("*Luzazul Accesorios*");
     expect(t).toContain("V-0003 · 13/09/2026");
     expect(t).toContain("• 2 × Aretas perla (SLA013) — $237.800");
     expect(t).toContain("Descuento: $6.900");
@@ -68,7 +68,7 @@ describe("textos de WhatsApp", () => {
     expect(t).toContain("Saldo pendiente: $40.000");
   });
   it("recordatorio de saldo", () => {
-    const t = textoRecordatorioSaldo("Luz Vélez Accesorios", "Marcela Ríos", 45000, [{ descripcion: "Consignación C-0001", saldo: 45000 }]);
+    const t = textoRecordatorioSaldo("Luzazul Accesorios", "Marcela Ríos", 45000, [{ descripcion: "Consignación C-0001", saldo: 45000 }]);
     expect(t.startsWith("Hola Marcela,")).toBe(true);
     expect(t).toContain("*$45.000*");
     expect(t).toContain("• Consignación C-0001: $45.000");

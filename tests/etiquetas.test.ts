@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ajustarLineas, cabeEnCabezal, lineasDeEtiqueta, mmAPx, nombreArchivoEtiqueta, tamanoEtiqueta, tamanoParaImpresora } from "@/lib/etiquetas";
 
 const producto = { codigo: "SLA013", nombre: "Aretas perla de Mallorca", precio_base: 40000, precio_publico: 118900 };
-const cfg = { nombre_negocio: "Luz Vélez Accesorios", etiqueta_lineas: ["negocio", "descripcion", "codigo_precio", "precio_publico"] as const, etiqueta_mostrar_precio_miles: true };
+const cfg = { nombre_negocio: "Luzazul Accesorios", etiqueta_lineas: ["negocio", "descripcion", "codigo_precio", "precio_publico"] as const, etiqueta_mostrar_precio_miles: true };
 
 describe("etiquetas", () => {
   it("convierte milímetros a píxeles según los DPI", () => {
@@ -28,7 +28,7 @@ describe("etiquetas", () => {
 
   it("arma las cuatro líneas como en la etiqueta actual", () => {
     const l = lineasDeEtiqueta(producto, { ...cfg, etiqueta_lineas: [...cfg.etiqueta_lineas] });
-    expect(l.map((x) => x.texto)).toEqual(["Luz Vélez Accesorios", "ARETAS PERLA DE MALLORCA", "SLA013 40", "$ 118.900"]);
+    expect(l.map((x) => x.texto)).toEqual(["Luzazul Accesorios", "ARETAS PERLA DE MALLORCA", "SLA013 40", "$ 118.900"]);
     const sinMiles = lineasDeEtiqueta(producto, { ...cfg, etiqueta_lineas: ["codigo_precio", "precio_publico"], etiqueta_mostrar_precio_miles: false });
     expect(sinMiles.map((x) => x.texto)).toEqual(["SLA013", "$ 118.900"]);
   });

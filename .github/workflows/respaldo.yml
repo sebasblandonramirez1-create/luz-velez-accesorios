@@ -1,0 +1,57 @@
+# Copia de seguridad diaria a un destino distinto de Supabase.
+#
+# Corre a las 03:30 de Bogotá (08:30 UTC). Conserva 30 copias diarias y la
+# primera de cada mes durante 12 meses. Al terminar anota la fecha en la app
+# (Ajustes → Copias de seguridad) y el tablero avisa si pasan más de 48 horas.
+#
+# Secretos necesarios:
+#   SUPABASE_DB_URL             cadena de conexión del pooler (Supabase → Connect → Session pooler)
+#   NEXT_PUBLIC_SUPABASE_URL    (o variable de repositorio)
+# y según el destino (variable de repositorio RESPALDO_DESTINO = r2 | drive):
+#   r2:    R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET
+#   drive: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, GOOGLE_DRIVE_FOLDER_ID
+# Sin RESPALDO_DESTINO, la copia se guarda como artefacto del flujo (90 días).
+
+name: Respaldo diario
+
+on:
+  schedule:
+    - cron: "30 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  respaldar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://tklopxvtbwzdgseacqyw.supabase.co' }}
+      RESPALDO_DESTINO: ${{ vars.RESPALDO_DESTINO || 'local' }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+      GOOGLE_DRIVE_FOLDER_ID: ${{ secrets.GOOGLE_DRIVE_FOLDER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Comprobar configuración
+        run: |
+          test -n "$SUPABASE_DB_URL" || { echo "Falta el secreto SUPABASE_DB_URL"; exit 1; }
+          echo "Destino: $RESPALDO_DESTINO"
+      - name: Crear y subir la copia
+        run: node scripts/respaldo.mts --destino "$RESPALDO_DESTINO" --carpeta ./respaldos
+      - name: Guardar la copia como artefacto (cuando no hay destino externo)
+        if: env.RESPALDO_DESTINO == 'local'
+        uses: actions/upload-artifact@v4
+        with:
+          name: respaldo-${{ github.run_id }}
+          path: respaldos/*.zip
+          retention-days: 90
