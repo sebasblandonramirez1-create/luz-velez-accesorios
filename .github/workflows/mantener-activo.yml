@@ -1,9 +1,11 @@
 # Evita que Supabase pause el proyecto gratuito por inactividad.
 #
-# Supabase pausa los proyectos del plan gratuito tras 7 días con pocas
-# consultas (https://supabase.com/docs/guides/platform/free-project-pausing).
-# Esta tarea hace una consulta mínima a la base de datos los lunes y jueves,
-# de modo que nunca pasen 7 días sin actividad aunque nadie use la app.
+# Supabase pausa los proyectos del plan gratuito tras 7 días sin consultas
+# (https://supabase.com/docs/guides/platform/free-project-pausing): «unas pocas
+# consultas a la base de datos cada día» bastan para mantenerlo activo. Esta
+# tarea hace una consulta mínima todos los días, de modo que el proyecto no se
+# duerma aunque nadie use la app. Si aun así se durmiera, la pantalla
+# /reactivar de la app explica cómo despertarlo.
 #
 # No necesita secretos: usa la URL y la clave pública del proyecto. Si existe el
 # secreto SUPABASE_SERVICE_ROLE_KEY, además purga la papelera (respaldo de pg_cron).
@@ -12,17 +14,17 @@ name: Mantener activo Supabase
 
 on:
   schedule:
-    - cron: "17 9 * * 1,4" # lunes y jueves 09:17 UTC (04:17 en Bogotá)
+    - cron: "17 9 * * *" # todos los días 09:17 UTC (04:17 en Bogotá)
   workflow_dispatch:
-
-env:
-  URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://tklopxvtbwzdgseacqyw.supabase.co' }}
-  CLAVE: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_VKktmSYVsPQ8Egf0hox2zw_UREyov6g' }}
 
 jobs:
   consultar:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || 'https://tklopxvtbwzdgseacqyw.supabase.co' }}
+      CLAVE: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_VKktmSYVsPQ8Egf0hox2zw_UREyov6g' }}
+      SERVICIO: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - name: Consulta mínima a la base de datos
         run: |
@@ -32,11 +34,12 @@ jobs:
             "$URL/rest/v1/catalogo_publico?select=id&limit=1")
           echo "Respuesta HTTP: $codigo"
           cat /tmp/respuesta.txt; echo
-          test "$codigo" = "200"
+          if [ "$codigo" != "200" ]; then
+            echo "::error::Supabase no respondió (HTTP $codigo). Si el proyecto está dormido, reactívalo desde la app (/reactivar) o el panel de Supabase."
+            exit 1
+          fi
       - name: Purgar papelera (mayor de 30 días)
-        if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' }}
-        env:
-          SERVICIO: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        if: env.SERVICIO != ''
         run: |
           curl -s -X POST -H "apikey: $SERVICIO" -H "Authorization: Bearer $SERVICIO" \
             -H "Content-Type: application/json" -d '{"dias":30}' \

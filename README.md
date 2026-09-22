@@ -57,7 +57,7 @@ GitHub Actions · pruebas → migraciones → despliegue · tarea «mantener act
 
 | Servicio | Plan gratuito | Fuente |
 |---|---|---|
-| Supabase | 500 MB de base de datos, 1 GB de archivos, 5 GB de salida al mes, 50.000 usuarios activos, 2 proyectos activos. **Se pausa tras 7 días con pocas consultas**; se puede reanudar durante 1 año. | [Precios](https://supabase.com/pricing), [Pausa de proyectos](https://supabase.com/docs/guides/platform/free-project-pausing) |
+| Supabase | 500 MB de base de datos, 1 GB de archivos, 5 GB de salida al mes, 50.000 usuarios activos, 2 proyectos activos. **Se pausa tras 7 días con pocas consultas**; se puede reanudar durante 1 año sin perder datos (ver «Si la aplicación se duerme»). | [Precios](https://supabase.com/pricing), [Pausa de proyectos](https://supabase.com/docs/guides/platform/free-project-pausing) |
 | Vercel Hobby | 100 GB de transferencia, 1 millón de invocaciones de funciones, 100 tareas programadas por proyecto, compilaciones de hasta 45 min, 1 compilación simultánea. Solo para uso no comercial según sus términos (ver nota). | [Límites](https://vercel.com/docs/limits) |
 | GitHub Actions | 2.000 minutos al mes en repositorios privados; ilimitado en públicos. | [Facturación](https://docs.github.com/en/billing/managing-billing-for-your-products/managing-billing-for-github-actions/about-billing-for-github-actions) |
 | Cloudflare R2 (Fase 5, respaldo) | 10 GB de almacenamiento, 1 millón de escrituras y 10 millones de lecturas al mes, salida gratuita. | [Precios R2](https://developers.cloudflare.com/r2/pricing/) |
@@ -328,6 +328,36 @@ repetir desde *Ajustes → Ayuda*). La guía rápida de dos páginas con captura
 `public/guia-propietaria.pdf` (enlace en Ayuda) y se regenera con `node scripts/guia.mts`
 con la app corriendo en local.
 
+## Si la aplicación «se duerme» (pausa de Supabase)
+
+El plan gratuito de Supabase pausa el proyecto cuando pasa **una semana sin consultas**.
+No se pierde nada: la base de datos y las fotos quedan guardadas y vuelven intactas al
+reactivarlo (Supabase permite reactivar hasta un año después de la pausa). Mientras
+está dormido, la pantalla de ingreso avisa «La aplicación está dormida» y enlaza a
+**`/reactivar`**; también hay un enlace permanente «¿La aplicación no responde?
+Reactivarla» al pie del ingreso.
+
+Hay tres defensas, de más a menos automática:
+
+1. **Que no se duerma.** El flujo `mantener-activo.yml` hace una consulta mínima
+   todos los días (Supabase dice que «unas pocas consultas al día» bastan). No
+   necesita secretos. Si alguna vez falla, GitHub avisa por correo a la dueña del
+   repositorio.
+2. **Reactivar desde la app.** Si en Vercel existe la variable
+   `SUPABASE_ACCESS_TOKEN` (token de acceso de Supabase: avatar → *Account* →
+   *Access Tokens* → *Generate new token*; si ofrece permisos finos, basta
+   `project_admin_write` sobre este proyecto; guárdalo como *Sensitive* y redespliega),
+   la pantalla `/reactivar` muestra el botón **Reactivar la aplicación**, que pide la
+   reactivación a la API de gestión de Supabase y se queda comprobando el estado
+   hasta que vuelve. El botón solo actúa cuando el proyecto está dormido, así que
+   no sirve para nada más aunque sea público.
+3. **Reactivar a mano.** Sin token, `/reactivar` enlaza al proyecto en el panel de
+   Supabase: *Restore project* → confirmar → esperar uno a tres minutos.
+
+Comprobación hecha el 22/09/2026: tras ocho días sin uso, el proyecto pasó a `INACTIVE`;
+el flujo de mantenimiento anterior nunca corrió por un error de sintaxis en el `if`
+del paso opcional (`secrets` no está disponible en `if`), corregido en esa fecha.
+
 ## Variables de entorno
 
 Ver `.env.example`. Nunca subas `.env.local` al repositorio (está en `.gitignore`).
@@ -338,6 +368,7 @@ Ver `.env.example`. Nunca subas `.env.local` al repositorio (está en `.gitignor
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | navegador y servidor | clave pública; RLS limita su alcance |
 | `SUPABASE_SERVICE_ROLE_KEY` | solo servidor y GitHub | invitaciones, respaldos, purga |
 | `NEXT_PUBLIC_APP_URL` | servidor | enlaces de correo y catálogo público |
+| `SUPABASE_ACCESS_TOKEN` | solo servidor (opcional) | botón «Reactivar la aplicación» en `/reactivar` cuando Supabase pausa el proyecto |
 
 ## Ventas, consignación y cuentas por cobrar (Fase 2)
 

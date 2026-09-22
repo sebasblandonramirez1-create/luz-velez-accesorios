@@ -6,12 +6,30 @@ import { NextResponse, type NextRequest } from "next/server";
  * y redirige a /ingresar si no hay sesión. Las rutas públicas (ingreso,
  * callback de correo, catálogo público, manifest, iconos) quedan fuera.
  */
-const RUTAS_PUBLICAS = [/^\/ingresar/, /^\/auth\//, /^\/catalogo(\/|$)/, /^\/manifest/, /^\/iconos\//, /^\/sin-conexion/];
+const RUTAS_PUBLICAS = [/^\/ingresar/, /^\/auth\//, /^\/catalogo(\/|$)/, /^\/manifest/, /^\/iconos\//, /^\/sin-conexion/, /^\/reactivar(\/|$)/];
+
+// Rutas que no necesitan sesión ni refrescarla: ni siquiera se consulta a Supabase.
+// Importa cuando el proyecto está dormido: la consulta tardaría ~25 s en fallar.
+const RUTAS_SIN_SESION = [/^\/reactivar(\/|$)/, /^\/sin-conexion/, /^\/manifest/, /^\/iconos\//];
+
+/** Espera la promesa como máximo `milisegundos`; si vence, devuelve `siVence`. */
+async function conTiempo<T>(promesa: Promise<T>, milisegundos: number, siVence: T): Promise<T> {
+  let temporizador: ReturnType<typeof setTimeout> | undefined;
+  const vencimiento = new Promise<T>((resolver) => {
+    temporizador = setTimeout(() => resolver(siVence), milisegundos);
+  });
+  try {
+    return await Promise.race([promesa, vencimiento]);
+  } finally {
+    clearTimeout(temporizador);
+  }
+}
 
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const clave = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const esPublica = RUTAS_PUBLICAS.some((r) => r.test(request.nextUrl.pathname));
+  if (RUTAS_SIN_SESION.some((r) => r.test(request.nextUrl.pathname))) return NextResponse.next({ request });
 
   // Sin configuración todavía: dejar pasar para que la página de ingreso explique qué falta.
   if (!url || !clave) return NextResponse.next({ request });
@@ -31,9 +49,13 @@ export async function proxy(request: NextRequest) {
   });
 
   // getUser() valida el token contra Supabase y refresca la sesión si hace falta.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Si Supabase no responde (proyecto dormido), no se espera más de 4 s: se
+  // trata como «sin sesión» y la pantalla de ingreso explica cómo reactivarlo.
+  const user = await conTiempo(
+    supabase.auth.getUser().then((r) => r.data.user).catch(() => null),
+    4000,
+    null,
+  );
 
   if (!user && !esPublica) {
     const destino = request.nextUrl.clone();
