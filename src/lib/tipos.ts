@@ -276,6 +276,22 @@ export type ConsignacionRecibo = {
   actualizado_en: string;
 };
 
+/** Registro de una modificación de la entrega. `cambios` sigue a CambioConsignacion (src/lib/modificaciones.ts). */
+export type ConsignacionModificacion = {
+  id: string;
+  consignacion_id: string;
+  numero: number;
+  fecha: string;
+  usuario_id: string | null;
+  usuario_nombre: string;
+  motivo: string;
+  cambios: Record<string, unknown>[];
+  piezas_antes: number;
+  piezas_despues: number;
+  total_antes: number;
+  total_despues: number;
+};
+
 export type ConsignacionLinea = {
   id: string;
   consignacion_id: string;
@@ -548,6 +564,12 @@ export type Database = {
         Update: never;
         Relationships: [{ foreignKeyName: "consignacion_recibos_consignacion_id_fkey"; columns: ["consignacion_id"]; isOneToOne: true; referencedRelation: "consignaciones"; referencedColumns: ["id"] }];
       };
+      consignacion_modificaciones: {
+        Row: ConsignacionModificacion;
+        Insert: never;
+        Update: never;
+        Relationships: [{ foreignKeyName: "consignacion_modificaciones_consignacion_id_fkey"; columns: ["consignacion_id"]; isOneToOne: false; referencedRelation: "consignaciones"; referencedColumns: ["id"] }];
+      };
       consignacion_lineas: {
         Row: ConsignacionLinea;
         Insert: Partial<ConsignacionLinea>;
@@ -636,6 +658,7 @@ export type Database = {
       caja_del_dia: { Args: { p_dia: string }; Returns: CajaDia };
       cerrar_caja: { Args: { p_dia: string; p_efectivo_contado: number; p_nota?: string }; Returns: string };
       reporte_periodo: { Args: { p_desde: string; p_hasta: string }; Returns: Reporte };
+      modificar_consignacion: { Args: { p: Record<string, unknown> }; Returns: string };
       preparar_firma_consignacion: { Args: { p_consignacion: string; p_dias?: number }; Returns: string };
       anular_firma_consignacion: { Args: { p_consignacion: string }; Returns: undefined };
       recibo_para_firmar: { Args: { p_token: string }; Returns: Record<string, unknown> | null };

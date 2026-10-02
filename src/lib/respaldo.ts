@@ -32,6 +32,7 @@ export const TABLAS_RESPALDO = [
   "consignaciones",
   "consignacion_lineas",
   "consignacion_recibos",
+  "consignacion_modificaciones",
   "liquidaciones",
   "liquidacion_lineas",
   "cuentas_por_cobrar",

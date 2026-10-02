@@ -1,5 +1,5 @@
 import { fecha, fechaHora, pesos } from "@/lib/formato";
-import { CAMPOS_RECEPTOR, codigoVerificacion, parrafosCondiciones, quienRecibe, totalesRecibo, type DatosRecibo } from "@/lib/recibo";
+import { CAMPOS_RECEPTOR, codigoVerificacion, leyendaModificaciones, parrafosCondiciones, quienRecibe, totalesRecibo, type DatosRecibo } from "@/lib/recibo";
 import { numeroDocumento } from "@/lib/ventas";
 
 /**
@@ -15,6 +15,7 @@ export function ReciboConsignacion({ datos }: { datos: DatosRecibo }) {
   const t = totalesRecibo(datos.lineas);
   const n = datos.negocio;
   const condiciones = parrafosCondiciones(datos.condiciones);
+  const modificada = leyendaModificaciones(datos);
   return (
     <article className="bg-white text-black">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b-2 border-black pb-3">
@@ -30,6 +31,7 @@ export function ReciboConsignacion({ datos }: { datos: DatosRecibo }) {
           <p className="text-sm font-bold">Fecha límite para liquidar: {datos.consignacion.fecha_limite ? fecha(datos.consignacion.fecha_limite) : "____ / ____ / ________"}</p>
         </div>
       </header>
+      {modificada && <p className="mt-1 text-xs font-semibold">{modificada}</p>}
 
       <section className="mt-4">
         <h3 className="border-b border-gray-500 pb-0.5 text-xs font-bold uppercase tracking-wide">Datos de quien recibe la mercancía</h3>

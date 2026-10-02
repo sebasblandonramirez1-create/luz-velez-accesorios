@@ -9,7 +9,7 @@
  */
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { fecha, fechaHora, pesos } from "./formato";
-import { CAMPOS_RECEPTOR, codigoVerificacion, parrafosCondiciones, quienRecibe, totalesRecibo, type DatosRecibo } from "./recibo";
+import { CAMPOS_RECEPTOR, codigoVerificacion, leyendaModificaciones, parrafosCondiciones, quienRecibe, totalesRecibo, type DatosRecibo } from "./recibo";
 import { numeroDocumento } from "./ventas";
 
 const ANCHO = 612;
@@ -105,6 +105,11 @@ export async function crearPdfRecibo(d: DatosRecibo): Promise<Uint8Array> {
   derecha(`Fecha límite para liquidar: ${d.consignacion.fecha_limite ? fecha(d.consignacion.fecha_limite) : "____ / ____ / ________"}`, ANCHO - MARGEN, y - 42, 9.5, negrita);
   y = Math.min(yIzq, y - 50) - 8;
   raya(MARGEN, ANCHO - MARGEN, y, 1.2, NEGRO);
+  const modificada = leyendaModificaciones(d);
+  if (modificada) {
+    y -= 12;
+    escribir(modificada, MARGEN, y, 8, negrita);
+  }
   y -= 20;
 
   // --- Datos de quien recibe ------------------------------------------------

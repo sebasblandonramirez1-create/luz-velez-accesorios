@@ -6,6 +6,7 @@ import { z } from "zod";
 import { clienteServidor, sesionActual } from "@/lib/supabase/servidor";
 import { mensajeDeError } from "@/lib/errores";
 import { hoyIso } from "@/lib/formato";
+import { mensajeErrorModificacion } from "@/lib/modificaciones";
 
 const esquemaConsignacion = z.object({
   contacto_id: z.string().uuid("Elige la vendedora."),
@@ -25,6 +26,15 @@ const esquemaLiquidacion = z.object({
   lineas: z.array(z.object({ consignacion_linea_id: z.string().uuid(), cantidad_vendida: z.number().int().min(0), cantidad_devuelta: z.number().int().min(0) })),
 });
 export type DatosLiquidacion = z.infer<typeof esquemaLiquidacion>;
+
+const esquemaModificacion = z.object({
+  consignacion_id: z.string().uuid(),
+  motivo: z.string().trim().max(500, "El motivo es demasiado largo.").default(""),
+  fecha_limite: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Revisa la fecha límite.").optional().or(z.literal("")),
+  nota: z.string().default(""),
+  lineas: z.array(z.object({ producto_id: z.string().uuid(), cantidad: z.number().int().positive("Las cantidades deben ser enteros mayores que cero."), valor_unitario: z.number().int().min(0) })).min(1, "La entrega debe quedar con al menos una pieza."),
+});
+export type DatosModificacion = z.input<typeof esquemaModificacion>;
 
 /** Fecha de un <input type="date">: si es hoy se usa la hora real; si es otro día, el mediodía en Bogotá. */
 function fechaIso(texto?: string) {
@@ -86,6 +96,24 @@ export async function anularLiquidacion(fd: FormData) {
   redirect(`/consignaciones/${consignacionId}?aviso=${encodeURIComponent("Liquidación anulada: las cantidades y las devoluciones se deshicieron.")}`);
 }
 
+/**
+ * Modifica una entrega sin liquidarla: añade o retira piezas, cambia cantidades,
+ * valores, la fecha límite y la nota. La base de datos ajusta el inventario y
+ * escribe el registro de la modificación en la misma transacción.
+ */
+export async function modificarConsignacion(datos: DatosModificacion): Promise<{ ok?: true; error?: string }> {
+  const sesion = await sesionActual();
+  if (!sesion) return { error: "Tu sesión venció. Vuelve a entrar." };
+  const v = esquemaModificacion.safeParse(datos);
+  if (!v.success) return { error: v.error.issues[0]?.message ?? "Revisa los datos." };
+  const supabase = await clienteServidor();
+  const { fecha_limite, ...resto } = v.data;
+  const { error } = await supabase.rpc("modificar_consignacion", { p: fecha_limite ? { ...resto, fecha_limite } : resto });
+  if (error) return { error: traducir(error) };
+  revalidar(v.data.consignacion_id);
+  return { ok: true };
+}
+
 /** Genera (o renueva) el enlace para que quien recibe firme el recibo. */
 export async function pedirFirmaConsignacion(fd: FormData) {
   const id = String(fd.get("id") ?? "");
@@ -108,6 +136,8 @@ export async function anularFirmaConsignacion(fd: FormData) {
 
 function traducir(error: unknown): string {
   const m = (error as { message?: string })?.message ?? "";
+  const deModificacion = mensajeErrorModificacion(m);
+  if (deModificacion) return deModificacion;
   if (/FECHA_LIMITE_INVALIDA/.test(m)) return "La fecha límite no puede ser anterior a la fecha de entrega.";
   if (/RECIBO_YA_FIRMADO/.test(m)) return "Este recibo ya está firmado. Para pedir otra firma, la propietaria debe anular la actual.";
   if (/RECIBO_NO_ENCONTRADO/.test(m)) return "La entrega no existe o fue anulada.";

@@ -11,6 +11,7 @@ import { FormularioLiquidacion } from "./formulario-liquidacion";
 import { FormularioAbono } from "@/app/(app)/cuentas/formulario-abono";
 import { cargarRecibo, urlDeLaApp } from "@/lib/recibo-servidor";
 import { PanelRecibo } from "./panel-recibo";
+import { describirCambio, resumenModificacion, type CambioConsignacion } from "@/lib/modificaciones";
 
 export default async function PaginaConsignacion({ params, searchParams }: PageProps<"/consignaciones/[id]">) {
   const { id } = await params;
@@ -21,7 +22,7 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
   const sesion = (await sesionActual())!;
   const supabase = await clienteServidor();
 
-  const [{ data: c }, { data: lineas }, { data: liquidaciones }, { data: cuenta }, { data: ajustes }, recibo, urlApp] = await Promise.all([
+  const [{ data: c }, { data: lineas }, { data: liquidaciones }, { data: cuenta }, { data: ajustes }, recibo, urlApp, { data: modificaciones }] = await Promise.all([
     supabase.from("consignaciones").select("*, contactos(id, nombre, telefono)").eq("id", id).is("eliminado_en", null).maybeSingle(),
     supabase.from("consignacion_lineas").select("*, productos(codigo, nombre, categoria, material)").eq("consignacion_id", id).order("creado_en"),
     supabase.from("liquidaciones").select("*, liquidacion_lineas(consignacion_linea_id, cantidad_vendida, cantidad_devuelta)").eq("consignacion_id", id).is("eliminado_en", null).order("fecha", { ascending: false }),
@@ -29,6 +30,7 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
     supabase.from("ajustes").select("nombre_negocio").eq("id", 1).single(),
     cargarRecibo(supabase, id),
     urlDeLaApp(),
+    supabase.from("consignacion_modificaciones").select("*").eq("consignacion_id", id).order("numero", { ascending: false }),
   ]);
   if (!c) notFound();
   const enlaceFirma = recibo?.recibo ? `${urlApp}/firmar/${recibo.recibo.token}` : null;
@@ -54,6 +56,11 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
         volver="/consignaciones"
         acciones={
           <>
+            {c.estado !== "cerrada" && (
+              <BotonEnlace href={`/consignaciones/${c.id}/modificar`} variante="secundario">
+                ✏️ Modificar entrega
+              </BotonEnlace>
+            )}
             <BotonEnlace href={`/imprimir/consignaciones/${c.id}`} variante="secundario">
               Hojas / PDF
             </BotonEnlace>
@@ -86,7 +93,14 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
         <Etiqueta tono={c.estado === "cerrada" ? "neutro" : c.estado === "parcial" ? "primario" : "alerta"}>{ESTADOS_CONSIGNACION[c.estado]}</Etiqueta>{" "}
         {saldo > 0 ? <Etiqueta tono="alerta">Debe {pesos(saldo)}</Etiqueta> : c.total_vendido > 0 ? <Etiqueta tono="exito">Al día</Etiqueta> : null}{" "}
         {vencida && <Etiqueta tono="peligro">Pasó la fecha límite ({fecha(c.fecha_limite)})</Etiqueta>}{" "}
-        {recibo?.datos.firma ? <Etiqueta tono="exito">Recibo firmado</Etiqueta> : recibo?.recibo ? <Etiqueta tono="alerta">Firma pendiente</Etiqueta> : null}
+        {recibo?.datos.firma ? <Etiqueta tono="exito">Recibo firmado</Etiqueta> : recibo?.recibo ? <Etiqueta tono="alerta">Firma pendiente</Etiqueta> : null}{" "}
+        {modificaciones && modificaciones.length > 0 && (
+          <a href="#historial">
+            <Etiqueta tono="primario">
+              Modificada {modificaciones.length} {modificaciones.length === 1 ? "vez" : "veces"}
+            </Etiqueta>
+          </a>
+        )}
       </p>
 
       {recibo && (
@@ -194,6 +208,37 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
                 );
               })}
             </ul>
+          )}
+        </Tarjeta>
+      </div>
+
+      <div id="historial" className="scroll-mt-20">
+        <Tarjeta titulo="Historial de modificaciones">
+          {!modificaciones?.length ? (
+            <p className="text-texto-suave">
+              Esta entrega no se ha modificado desde que se registró.
+              {c.estado !== "cerrada" ? " Con «Modificar entrega» puedes añadir o retirar piezas sin liquidar; cada cambio queda anotado aquí." : ""}
+            </p>
+          ) : (
+            <ol className="space-y-4">
+              {modificaciones.map((m) => (
+                <li key={m.id} className="border-l-4 border-oro pl-3">
+                  <p className="font-semibold">
+                    Modificación n.º {m.numero} · {fechaHora(m.fecha)}
+                  </p>
+                  <p className="text-sm text-texto-suave">
+                    Por {m.usuario_nombre || "una usuaria"}
+                    {m.motivo ? ` · Motivo: ${m.motivo}` : ""}
+                  </p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">
+                    {(m.cambios as unknown as CambioConsignacion[]).map((cambio, i) => (
+                      <li key={i}>{describirCambio(cambio)}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-sm font-semibold">{resumenModificacion(m)}</p>
+                </li>
+              ))}
+            </ol>
           )}
         </Tarjeta>
       </div>

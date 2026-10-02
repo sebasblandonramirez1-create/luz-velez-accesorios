@@ -25,7 +25,7 @@ export default function PaginaAyuda() {
             <strong>Añade tus contactos</strong>: vendedoras en consignación, clientas frecuentes y proveedores.
           </li>
           <li>
-            <strong>Ventas y consignaciones</strong>: en «Ventas» registras la venta directa; en «Consignación» la entrega a una vendedora (con buscador y filtros para ubicar las piezas) y, cuando te trae la cuenta, la liquidación con las hojas de VENTAS, DEVOLUCIONES y PENDIENTE DE PAGO. El recibo de entrega se imprime, se comparte como PDF por WhatsApp o correo, o se envía un enlace para que la vendedora lo firme desde su celular.
+            <strong>Ventas y consignaciones</strong>: en «Ventas» registras la venta directa; en «Consignación» la entrega a una vendedora (con buscador y filtros para ubicar las piezas) y, cuando te trae la cuenta, la liquidación con las hojas de VENTAS, DEVOLUCIONES y PENDIENTE DE PAGO. Si la vendedora se lleva más piezas o devuelve algunas antes de liquidar, usa «Modificar entrega»: el cambio queda en el historial de la consignación. El recibo de entrega se imprime, se comparte como PDF por WhatsApp o correo, o se envía un enlace para que la vendedora lo firme desde su celular.
           </li>
           <li>
             <strong>Compras, gastos, caja y reportes</strong> (solo propietaria): en «Más». Cada compra entra al inventario y actualiza el costo; la caja del día muestra lo que debe haber en efectivo; los reportes se exportan a Excel o PDF.

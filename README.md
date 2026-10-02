@@ -439,6 +439,35 @@ Añadido el 01/10/2026 (migración 10).
   título ejecutivo), conviene revisar el texto de las condiciones con una abogada o un
   abogado.
 
+## Modificar una consignación sin liquidarla (con historial)
+
+Añadido el 01/10/2026 (migración 11).
+
+- **Qué permite.** En el detalle de una consignación abierta o parcial, el botón
+  **Modificar entrega** abre `/consignaciones/<id>/modificar`: añadir piezas nuevas (con
+  el mismo buscador y filtros), subir o bajar cantidades, retirar piezas, cambiar el
+  valor unitario, la fecha límite y la nota, y escribir un motivo opcional. Antes de
+  guardar la pantalla lista los cambios y compara el total anterior con el nuevo.
+- **Inventario.** No se reescribe la historia: cada cambio genera su propio movimiento
+  con la fecha del día («modificación: se añaden piezas», «se retiran piezas», «pieza
+  añadida», «pieza retirada»). El stock sigue cuadrando con la suma de movimientos, y
+  anular la entrega devuelve exactamente lo que sigue fuera.
+- **Reglas.** No se puede dejar una pieza por debajo de lo ya liquidado, ni retirar una
+  pieza con liquidaciones, ni cambiar el valor de una pieza que ya tiene ventas (cambiaría
+  la cuenta por cobrar hacia atrás). Una entrega cerrada no se modifica: se crea una nueva.
+  Todo ocurre en una transacción (`modificar_consignacion`): si algo falla, por ejemplo
+  por falta de existencias, no queda nada a medias.
+- **Recibo firmado.** Si el recibo ya tiene firma electrónica, solo la propietaria puede
+  modificar la entrega y la firma **se anula**, porque lo firmado ya no coincide; la
+  anulación queda en el historial con el nombre de quien firmó, la fecha y la huella. Si
+  solo había un enlace pendiente, el mismo enlace muestra el recibo actualizado.
+- **Historial.** Tabla `consignacion_modificaciones`: número consecutivo, fecha, usuaria,
+  motivo, lista de cambios y totales antes y después. Solo la escribe la función; ni la
+  propietaria puede editarla o borrarla desde la app. Se ve en la tarjeta «Historial de
+  modificaciones» del detalle, y el recibo impreso, el PDF y la página de firma indican
+  «Entrega modificada N veces; última modificación: …». Entra en las copias de seguridad.
+- **Pruebas.** `tests/db/modificar_consignacion.test.ts` y `tests/modificaciones.test.ts`.
+
 ## Gastos, compras, caja y reportes (Fase 3)
 
 - **Solo la propietaria** ve y registra compras, gastos, caja y reportes (RLS y comprobación

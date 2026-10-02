@@ -40,6 +40,8 @@ export interface DatosRecibo {
   firma?: FirmaRecibo | null;
   estado?: "pendiente" | "firmado" | "vencido";
   vence?: string;
+  /** Cuántas veces se modificó la entrega y cuándo fue la última. */
+  modificaciones?: { cantidad: number; ultima: string | null } | null;
 }
 
 export const PERSONA_VACIA: PersonaRecibo = { nombre: "", documento: "", telefono: "", direccion: "", ciudad: "", correo: "" };
@@ -80,6 +82,13 @@ export function totalesRecibo(lineas: LineaRecibo[]) {
     referencias: lineas.length,
     total: lineas.reduce((s, l) => s + l.cantidad * l.valor_unitario, 0),
   };
+}
+
+/** «Entrega modificada 2 veces; última modificación: 05/10/2026 14:30», o null si no hubo cambios. */
+export function leyendaModificaciones(d: Pick<DatosRecibo, "modificaciones">): string | null {
+  const m = d.modificaciones;
+  if (!m || !m.cantidad) return null;
+  return `Entrega modificada ${m.cantidad} ${m.cantidad === 1 ? "vez" : "veces"}${m.ultima ? `; última modificación: ${fechaHora(m.ultima)}` : ""}. Este recibo reemplaza a los anteriores.`;
 }
 
 /** Código corto para citar la firma: los primeros 12 caracteres de la huella. */
