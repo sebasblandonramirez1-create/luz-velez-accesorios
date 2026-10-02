@@ -69,7 +69,7 @@ describe("compras", () => {
       expect(r[0].n).toBe(0);
       const c = await q<{ n: number }>("select count(*)::int as n from public.compras");
       expect(c[0].n).toBe(0);
-      await expect(q("select public.reporte_periodo(current_date, current_date)")).rejects.toThrow(/SIN_PERMISO/);
+      await expect(q("select public.reporte_periodo((now() at time zone 'America/Bogota')::date, (now() at time zone 'America/Bogota')::date)")).rejects.toThrow(/SIN_PERMISO/);
     } finally {
       await db.cliente.query("reset role");
     }
@@ -98,7 +98,7 @@ describe("gastos, caja y reportes", () => {
   it("registra gastos manuales y el reporte los agrupa por categoría", async () => {
     await db.iniciarSesion(propietaria);
     await q("insert into public.gastos (categoria, valor, medio_pago, nota) values ('empaques', 30000, 'efectivo', 'bolsas'), ('transporte', 12000, 'efectivo', 'taxi'), ('publicidad', 50000, 'nequi', 'pauta')");
-    const [{ r }] = await q<{ r: Record<string, unknown> }>("select public.reporte_periodo(current_date, current_date) as r");
+    const [{ r }] = await q<{ r: Record<string, unknown> }>("select public.reporte_periodo((now() at time zone 'America/Bogota')::date, (now() at time zone 'America/Bogota')::date) as r");
     const cats = Object.fromEntries((r.gastos_por_categoria as { categoria: string; valor: number }[]).map((x) => [x.categoria, x.valor]));
     expect(cats.empaques).toBe(30000);
     expect(cats.transporte).toBe(12000);
@@ -113,7 +113,7 @@ describe("gastos, caja y reportes", () => {
     const cid = await rpc("registrar_consignacion", { contacto_id: vendedora, lineas: [{ producto_id: aretas, cantidad: 4, valor_unitario: 40000 }] });
     const [linea] = await q<{ id: string }>("select id from public.consignacion_lineas where consignacion_id = $1", [cid]);
     await rpc("registrar_liquidacion", { consignacion_id: cid, lineas: [{ consignacion_linea_id: linea.id, cantidad_vendida: 3, cantidad_devuelta: 0 }], abono: 100000 });
-    const [{ r }] = await q<{ r: Record<string, number | unknown[]> }>("select public.reporte_periodo(current_date, current_date) as r");
+    const [{ r }] = await q<{ r: Record<string, number | unknown[]> }>("select public.reporte_periodo((now() at time zone 'America/Bogota')::date, (now() at time zone 'America/Bogota')::date) as r");
     expect(r.ventas_directas).toBe(2 * 192900);
     expect(r.ventas_consignacion).toBe(3 * 40000);
     expect(r.ventas_total).toBe(2 * 192900 + 3 * 40000);
@@ -142,18 +142,18 @@ describe("gastos, caja y reportes", () => {
 
   it("la caja del día cuadra ingresos y gastos por medio y el cierre guarda la diferencia", async () => {
     await db.iniciarSesion(propietaria);
-    const [{ c }] = await q<{ c: Record<string, number> }>("select public.caja_del_dia(current_date) as c");
+    const [{ c }] = await q<{ c: Record<string, number> }>("select public.caja_del_dia((now() at time zone 'America/Bogota')::date) as c");
     expect(c.ingresos_efectivo).toBe(2 * 192900 + 100000);
     // en efectivo: empaques, transporte y la segunda compra (medio por defecto); otros: publicidad (nequi) y la primera compra (transferencia)
     expect(c.gastos_efectivo).toBe(30000 + 12000 + 5 * 21000);
     expect(c.gastos_otros).toBe(50000 + 10 * 22000 + 4 * 36000);
     const esperado = c.ingresos_efectivo - c.gastos_efectivo;
-    await q("select public.cerrar_caja(current_date, $1, 'cuadre de prueba')", [esperado - 5000]);
-    const [cierre] = await q<{ efectivo_esperado: number; efectivo_contado: number; diferencia: number }>("select efectivo_esperado, efectivo_contado, diferencia from public.cierres_caja where dia = current_date");
+    await q("select public.cerrar_caja((now() at time zone 'America/Bogota')::date, $1, 'cuadre de prueba')", [esperado - 5000]);
+    const [cierre] = await q<{ efectivo_esperado: number; efectivo_contado: number; diferencia: number }>("select efectivo_esperado, efectivo_contado, diferencia from public.cierres_caja where dia = (now() at time zone 'America/Bogota')::date");
     expect(cierre).toEqual({ efectivo_esperado: esperado, efectivo_contado: esperado - 5000, diferencia: -5000 });
     // volver a cerrar el mismo día reemplaza el cierre
-    await q("select public.cerrar_caja(current_date, $1, 'corregido')", [esperado]);
-    const [c2] = await q<{ diferencia: number; n: number }>("select diferencia, (select count(*)::int from public.cierres_caja) as n from public.cierres_caja where dia = current_date");
+    await q("select public.cerrar_caja((now() at time zone 'America/Bogota')::date, $1, 'corregido')", [esperado]);
+    const [c2] = await q<{ diferencia: number; n: number }>("select diferencia, (select count(*)::int from public.cierres_caja) as n from public.cierres_caja where dia = (now() at time zone 'America/Bogota')::date");
     expect(c2).toEqual({ diferencia: 0, n: 1 });
   });
 
