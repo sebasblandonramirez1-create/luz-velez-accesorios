@@ -4,14 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Aviso, Boton, Campo, Selector, Tarjeta, AreaTexto } from "@/components/ui";
-import { BuscadorProducto, type ProductoBuscable } from "@/components/buscador-producto";
+import { SelectorProductos } from "@/components/selector-productos";
+import type { ProductoFiltrable } from "@/lib/filtros-productos";
 import { MiniaturaProducto } from "@/components/miniatura";
-import { hoyIso, pesos } from "@/lib/formato";
+import { fecha as fechaLegible, hoyIso, pesos, sumarDias } from "@/lib/formato";
 import { TIPOS_CONTACTO, type TipoContacto } from "@/lib/tipos";
 import { registrarConsignacion, type DatosConsignacion } from "../acciones";
 import { encolarPendiente, esErrorDeRed } from "@/lib/pendientes";
 
-type ProductoEntrega = ProductoBuscable & { precio_base: number };
+type ProductoEntrega = ProductoFiltrable;
 interface Linea {
   producto_id: string;
   codigo: string;
@@ -25,16 +26,20 @@ export function FormularioConsignacion({
   productos,
   contactos,
   contactoInicial,
+  diasPlazo,
 }: {
   productos: ProductoEntrega[];
   contactos: { id: string; nombre: string; tipo: TipoContacto }[];
   contactoInicial: string;
+  diasPlazo: number;
 }) {
   const router = useRouter();
   const [lineas, setLineas] = useState<Linea[]>([]);
-  const [buscando, setBuscando] = useState(true);
   const [contactoId, setContactoId] = useState(contactoInicial);
   const [fecha, setFecha] = useState(hoyIso());
+  // La fecha límite sigue a la de entrega (más el plazo de Ajustes) hasta que se cambie a mano.
+  const [limiteManual, setLimiteManual] = useState<string | null>(null);
+  const fechaLimite = limiteManual ?? sumarDias(fecha, diasPlazo);
   const [nota, setNota] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -42,16 +47,18 @@ export function FormularioConsignacion({
   const total = lineas.reduce((s, l) => s + l.cantidad * l.valor_unitario, 0);
   const piezas = lineas.reduce((s, l) => s + l.cantidad, 0);
 
-  function agregar(id: string) {
-    if (!id) return setBuscando(false);
+  const cantidades = Object.fromEntries(lineas.map((l) => [l.producto_id, l.cantidad]));
+
+  /** Fija la cantidad de un producto desde el buscador: 0 lo quita de la entrega. */
+  function fijarCantidad(id: string, cantidad: number) {
     const p = productos.find((x) => x.id === id);
     if (!p) return;
+    const n = Math.max(0, Math.min(cantidad, p.stock_actual));
     setLineas((ls) => {
-      const e = ls.find((l) => l.producto_id === id);
-      if (e) return ls.map((l) => (l.producto_id === id ? { ...l, cantidad: l.cantidad + 1 } : l));
-      return [...ls, { producto_id: p.id, codigo: p.codigo, nombre: p.nombre, cantidad: 1, valor_unitario: p.precio_base, stock_actual: p.stock_actual }];
+      if (n === 0) return ls.filter((l) => l.producto_id !== id);
+      if (ls.some((l) => l.producto_id === id)) return ls.map((l) => (l.producto_id === id ? { ...l, cantidad: n } : l));
+      return [...ls, { producto_id: p.id, codigo: p.codigo, nombre: p.nombre, cantidad: n, valor_unitario: p.precio_base, stock_actual: p.stock_actual }];
     });
-    setBuscando(false);
     setError(null);
   }
   function actualizar(id: string, cambios: Partial<Linea>) {
@@ -61,6 +68,7 @@ export function FormularioConsignacion({
   async function confirmar() {
     if (!contactoId) return setError("Elige la vendedora que se lleva la mercancía.");
     if (lineas.length === 0) return setError("Añade al menos un producto.");
+    if (fechaLimite < fecha) return setError("La fecha límite no puede ser anterior a la fecha de entrega.");
     for (const l of lineas) {
       if (!Number.isInteger(l.cantidad) || l.cantidad <= 0) return setError(`La cantidad de ${l.codigo} debe ser un entero mayor que cero.`);
       if (l.cantidad > l.stock_actual) return setError(`De ${l.codigo} solo hay ${l.stock_actual} en inventario.`);
@@ -70,6 +78,7 @@ export function FormularioConsignacion({
     const datos: DatosConsignacion = {
       contacto_id: contactoId,
       fecha_entrega: fecha,
+      fecha_limite: fechaLimite,
       nota,
       lineas: lineas.map((l) => ({ producto_id: l.producto_id, cantidad: l.cantidad, valor_unitario: l.valor_unitario })),
     };
@@ -109,10 +118,24 @@ export function FormularioConsignacion({
         </Link>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Campo etiqueta="Fecha de entrega" name="fecha_entrega" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+          <Campo
+            etiqueta="Fecha límite para liquidar"
+            name="fecha_limite"
+            type="date"
+            min={fecha}
+            value={fechaLimite}
+            onChange={(e) => setLimiteManual(e.target.value || null)}
+            ayuda={limiteManual ? `Elegida a mano (${fechaLegible(fechaLimite)}).` : `${diasPlazo} días después de la entrega. Aparece en el recibo.`}
+          />
         </div>
       </Tarjeta>
 
-      <Tarjeta titulo="2. Piezas entregadas">
+      <Tarjeta titulo="2. Busca y añade las piezas">
+        <SelectorProductos productos={productos} cantidades={cantidades} onCambiar={fijarCantidad} />
+      </Tarjeta>
+
+      <Tarjeta titulo={`3. En esta entrega (${piezas} ${piezas === 1 ? "pieza" : "piezas"})`}>
+        {lineas.length === 0 && <p className="text-texto-suave">Todavía no has añadido piezas. Tócalas en la lista de arriba.</p>}
         {lineas.length > 0 && (
           <ul className="mb-3 divide-y divide-borde">
             {lineas.map((l) => {
@@ -140,7 +163,7 @@ export function FormularioConsignacion({
                           −
                         </button>
                         <input type="number" inputMode="numeric" min={1} value={l.cantidad} onChange={(e) => actualizar(l.producto_id, { cantidad: Number.parseInt(e.target.value || "1", 10) })} className="campo !min-h-11 !rounded-none text-center" aria-label="Cantidad" />
-                        <button type="button" className="min-h-11 w-11 rounded-r-xl border border-borde bg-fondo text-xl font-bold" onClick={() => actualizar(l.producto_id, { cantidad: l.cantidad + 1 })} aria-label="Más">
+                        <button type="button" className="min-h-11 w-11 rounded-r-xl border border-borde bg-fondo text-xl font-bold" onClick={() => actualizar(l.producto_id, { cantidad: Math.min(l.stock_actual, l.cantidad + 1) })} aria-label="Más">
                           +
                         </button>
                       </div>
@@ -155,13 +178,6 @@ export function FormularioConsignacion({
             })}
           </ul>
         )}
-        {buscando ? (
-          <BuscadorProducto productos={productos.filter((p) => p.stock_actual > 0)} seleccionado="" onSeleccionar={agregar} />
-        ) : (
-          <Boton variante="secundario" className="w-full" onClick={() => setBuscando(true)}>
-            ➕ Añadir otro producto
-          </Boton>
-        )}
         <AreaTexto etiqueta="Nota (opcional)" name="nota" value={nota} onChange={(e) => setNota(e.target.value)} className="mt-3" rows={2} />
       </Tarjeta>
 
@@ -173,7 +189,7 @@ export function FormularioConsignacion({
           <span className="text-3xl font-bold">{pesos(total)}</span>
         </div>
         <Boton grande variante="acento" className="w-full" onClick={confirmar} disabled={enviando || lineas.length === 0}>
-          {enviando ? "Guardando…" : "3. Confirmar entrega"}
+          {enviando ? "Guardando…" : "4. Confirmar entrega"}
         </Boton>
       </div>
     </div>

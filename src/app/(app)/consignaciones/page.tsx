@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { clienteServidor } from "@/lib/supabase/servidor";
 import { Aviso, BotonEnlace, Encabezado, EstadoVacio, Etiqueta } from "@/components/ui";
-import { fecha, pesos } from "@/lib/formato";
+import { fecha, hoyIso, pesos } from "@/lib/formato";
 import { numeroDocumento } from "@/lib/ventas";
 import { ESTADOS_CONSIGNACION, type EstadoConsignacion } from "@/lib/tipos";
 
@@ -14,7 +14,7 @@ export default async function PaginaConsignaciones({ searchParams }: PageProps<"
   const supabase = await clienteServidor();
   let consulta = supabase
     .from("consignaciones")
-    .select("id, numero, fecha_entrega, estado, total_entregado, total_vendido, total_pendiente, contactos(nombre)")
+    .select("id, numero, fecha_entrega, fecha_limite, estado, total_entregado, total_vendido, total_pendiente, contactos(nombre)")
     .is("eliminado_en", null)
     .order("fecha_entrega", { ascending: false })
     .limit(300);
@@ -28,6 +28,7 @@ export default async function PaginaConsignaciones({ searchParams }: PageProps<"
     : { data: [] as { origen_id: string; saldo: number }[] };
   const saldoDe = new Map((cuentas ?? []).map((c) => [c.origen_id, c.saldo]));
   const enLaCalle = (lista ?? []).reduce((s, c) => s + c.total_pendiente, 0);
+  const hoy = hoyIso();
 
   return (
     <div>
@@ -71,6 +72,12 @@ export default async function PaginaConsignaciones({ searchParams }: PageProps<"
                     <span className="block text-sm text-texto-suave">
                       Entregada el {fecha(c.fecha_entrega)} · {pesos(c.total_entregado)} · pendiente {pesos(c.total_pendiente)}
                     </span>
+                    {c.fecha_limite && c.estado !== "cerrada" && (
+                      <span className={`block text-sm ${c.fecha_limite < hoy ? "font-semibold text-peligro" : "text-texto-suave"}`}>
+                        {c.fecha_limite < hoy ? "Pasó la fecha límite: " : "Límite para liquidar: "}
+                        {fecha(c.fecha_limite)}
+                      </span>
+                    )}
                   </span>
                   <span className="text-right">
                     <Etiqueta tono={c.estado === "cerrada" ? "neutro" : c.estado === "parcial" ? "primario" : "alerta"}>{ESTADOS_CONSIGNACION[c.estado]}</Etiqueta>

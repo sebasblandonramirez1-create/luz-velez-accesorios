@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 import { clienteServidor, sesionActual } from "@/lib/supabase/servidor";
 import { Aviso, BotonEnlace, Encabezado, Etiqueta, Tarjeta } from "@/components/ui";
 import { BotonConfirmar } from "@/components/confirmar";
-import { fecha, fechaHora, pesos } from "@/lib/formato";
+import { fecha, fechaHora, hoyIso, pesos } from "@/lib/formato";
 import { ESTADOS_CONSIGNACION, MEDIOS_PAGO, type CategoriaProducto } from "@/lib/tipos";
 import { enlaceWhatsApp, hojasConsignacion, numeroDocumento, textoRecordatorioSaldo } from "@/lib/ventas";
 import { anularLiquidacion, enviarConsignacionAPapelera } from "../acciones";
 import { FormularioLiquidacion } from "./formulario-liquidacion";
 import { FormularioAbono } from "@/app/(app)/cuentas/formulario-abono";
+import { cargarRecibo, urlDeLaApp } from "@/lib/recibo-servidor";
+import { PanelRecibo } from "./panel-recibo";
 
 export default async function PaginaConsignacion({ params, searchParams }: PageProps<"/consignaciones/[id]">) {
   const { id } = await params;
@@ -19,14 +21,18 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
   const sesion = (await sesionActual())!;
   const supabase = await clienteServidor();
 
-  const [{ data: c }, { data: lineas }, { data: liquidaciones }, { data: cuenta }, { data: ajustes }] = await Promise.all([
+  const [{ data: c }, { data: lineas }, { data: liquidaciones }, { data: cuenta }, { data: ajustes }, recibo, urlApp] = await Promise.all([
     supabase.from("consignaciones").select("*, contactos(id, nombre, telefono)").eq("id", id).is("eliminado_en", null).maybeSingle(),
     supabase.from("consignacion_lineas").select("*, productos(codigo, nombre, categoria, material)").eq("consignacion_id", id).order("creado_en"),
     supabase.from("liquidaciones").select("*, liquidacion_lineas(consignacion_linea_id, cantidad_vendida, cantidad_devuelta)").eq("consignacion_id", id).is("eliminado_en", null).order("fecha", { ascending: false }),
     supabase.from("cuentas_por_cobrar").select("*, abonos(id, fecha, valor, medio_pago, nota, eliminado_en)").eq("origen_tipo", "consignacion").eq("origen_id", id).maybeSingle(),
     supabase.from("ajustes").select("nombre_negocio").eq("id", 1).single(),
+    cargarRecibo(supabase, id),
+    urlDeLaApp(),
   ]);
   if (!c) notFound();
+  const enlaceFirma = recibo?.recibo ? `${urlApp}/firmar/${recibo.recibo.token}` : null;
+  const vencida = c.estado !== "cerrada" && c.fecha_limite != null && c.fecha_limite < hoyIso();
 
   const contacto = c.contactos as unknown as { id: string; nombre: string; telefono: string };
   const filas = (lineas ?? []).map((l) => {
@@ -44,7 +50,7 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
     <div className="space-y-4">
       <Encabezado
         titulo={`Consignación ${numeroDocumento("C", c.numero)}`}
-        subtitulo={`${contacto.nombre} · entregada el ${fecha(c.fecha_entrega)}`}
+        subtitulo={`${contacto.nombre} · entregada el ${fecha(c.fecha_entrega)}${c.fecha_limite ? ` · límite ${fecha(c.fecha_limite)}` : ""}`}
         volver="/consignaciones"
         acciones={
           <>
@@ -59,7 +65,7 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
           </>
         }
       />
-      {nueva && <Aviso tipo="exito">Entrega registrada y descontada del inventario. Imprime la relación de entrega o envíala por WhatsApp.</Aviso>}
+      {nueva && <Aviso tipo="exito">Entrega registrada y descontada del inventario. Abajo puedes imprimir el recibo, compartirlo por WhatsApp o correo, o pedir la firma electrónica.</Aviso>}
       {aviso && <Aviso tipo="exito">{aviso}</Aviso>}
       {error && <Aviso tipo="error">{error}</Aviso>}
 
@@ -78,8 +84,18 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
       </section>
       <p>
         <Etiqueta tono={c.estado === "cerrada" ? "neutro" : c.estado === "parcial" ? "primario" : "alerta"}>{ESTADOS_CONSIGNACION[c.estado]}</Etiqueta>{" "}
-        {saldo > 0 ? <Etiqueta tono="alerta">Debe {pesos(saldo)}</Etiqueta> : c.total_vendido > 0 ? <Etiqueta tono="exito">Al día</Etiqueta> : null}
+        {saldo > 0 ? <Etiqueta tono="alerta">Debe {pesos(saldo)}</Etiqueta> : c.total_vendido > 0 ? <Etiqueta tono="exito">Al día</Etiqueta> : null}{" "}
+        {vencida && <Etiqueta tono="peligro">Pasó la fecha límite ({fecha(c.fecha_limite)})</Etiqueta>}{" "}
+        {recibo?.datos.firma ? <Etiqueta tono="exito">Recibo firmado</Etiqueta> : recibo?.recibo ? <Etiqueta tono="alerta">Firma pendiente</Etiqueta> : null}
       </p>
+
+      {recibo && (
+        <div id="recibo" className="scroll-mt-20">
+          <Tarjeta titulo="Recibo de entrega">
+            <PanelRecibo datos={recibo.datos} enlaceFirma={enlaceFirma} esPropietaria={sesion.perfil.rol === "propietaria"} />
+          </Tarjeta>
+        </div>
+      )}
 
       <Tarjeta titulo="Piezas">
         <div className="overflow-x-auto">

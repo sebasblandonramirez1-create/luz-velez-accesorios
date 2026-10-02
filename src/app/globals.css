@@ -116,3 +116,39 @@ select.campo {
     background: white;
   }
 }
+
+/* Listas con barra de desplazamiento siempre visible (buscador de productos). */
+.desplazable,
+.desplazable-x {
+  overscroll-behavior: contain;
+}
+/* Firefox no admite ::-webkit-scrollbar; en Chrome y Safari las propiedades
+   estándar harían la barra superpuesta (oculta hasta deslizar), así que solo
+   se usan donde no hay alternativa. */
+@supports not selector(::-webkit-scrollbar) {
+  .desplazable,
+  .desplazable-x {
+    scrollbar-width: auto;
+    scrollbar-color: var(--oro) var(--primario-claro);
+  }
+}
+.desplazable::-webkit-scrollbar {
+  width: 14px;
+}
+.desplazable-x::-webkit-scrollbar {
+  height: 8px;
+}
+.desplazable::-webkit-scrollbar-track,
+.desplazable-x::-webkit-scrollbar-track {
+  background: var(--primario-claro);
+  border-radius: 999px;
+}
+.desplazable::-webkit-scrollbar-thumb,
+.desplazable-x::-webkit-scrollbar-thumb {
+  background: var(--oro);
+  border-radius: 999px;
+  border: 3px solid var(--primario-claro);
+}
+.desplazable-x::-webkit-scrollbar-thumb {
+  border-width: 2px;
+}

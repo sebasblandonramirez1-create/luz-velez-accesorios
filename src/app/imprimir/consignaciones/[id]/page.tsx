@@ -5,6 +5,9 @@ import { BotonImprimir } from "@/components/copiar";
 import { enMiles, fecha, hoyIso, pesos } from "@/lib/formato";
 import type { CategoriaProducto } from "@/lib/tipos";
 import { hojasConsignacion, numeroDocumento, type FilaHoja } from "@/lib/ventas";
+import { cargarRecibo } from "@/lib/recibo-servidor";
+import { ReciboConsignacion } from "@/components/recibo-consignacion";
+import { BotonesPdfRecibo } from "@/components/compartir-recibo";
 
 interface Encabezamiento {
   negocio: string;
@@ -84,11 +87,12 @@ export default async function HojasConsignacion({ params, searchParams }: PagePr
   const sp = await searchParams;
   const solo = typeof sp.hoja === "string" ? sp.hoja : "";
   const supabase = await clienteServidor();
-  const [{ data: c }, { data: lineas }, { data: cuenta }, { data: ajustes }] = await Promise.all([
+  const [{ data: c }, { data: lineas }, { data: cuenta }, { data: ajustes }, recibo] = await Promise.all([
     supabase.from("consignaciones").select("*, contactos(nombre, telefono)").eq("id", id).is("eliminado_en", null).maybeSingle(),
     supabase.from("consignacion_lineas").select("*, productos(codigo, nombre, categoria, material, precio_base)").eq("consignacion_id", id).order("creado_en"),
     supabase.from("cuentas_por_cobrar").select("saldo, abonado, valor_total").eq("origen_tipo", "consignacion").eq("origen_id", id).maybeSingle(),
     supabase.from("ajustes").select("nombre_negocio, etiqueta_mostrar_precio_miles").eq("id", 1).single(),
+    cargarRecibo(supabase, id),
   ]);
   if (!c) notFound();
   const contacto = c.contactos as unknown as { nombre: string; telefono: string };
@@ -111,7 +115,7 @@ export default async function HojasConsignacion({ params, searchParams }: PagePr
         <div className="flex flex-wrap gap-2">
           {[
             ["", "Todas"],
-            ["entrega", "Entrega"],
+            ["entrega", "Recibo de entrega"],
             ["ventas", "Ventas"],
             ["devoluciones", "Devoluciones"],
             ["pendiente", "Pendiente"],
@@ -120,14 +124,17 @@ export default async function HojasConsignacion({ params, searchParams }: PagePr
               {t}
             </Link>
           ))}
+          {recibo && <BotonesPdfRecibo datos={recibo.datos} />}
           <BotonImprimir />
         </div>
       </div>
 
-      <Hoja titulo="Relación de entrega" clave="entrega" solo={solo} enc={enc}>
-        <Tabla filas={h.entregado.filas} total={h.entregado.total} etiquetaTotal="Total entregado" conMiles={conMiles} />
-        <p className="mt-6 text-sm">Recibí conforme: ____________________________ &nbsp;&nbsp; Fecha: ______________</p>
-      </Hoja>
+      {/* Recibo de entrega: datos del negocio y de quien recibe, piezas, condiciones y firmas. */}
+      {(!solo || solo === "entrega") && recibo && (
+        <section className="mb-8 break-after-page print:mb-0">
+          <ReciboConsignacion datos={recibo.datos} />
+        </section>
+      )}
 
       <Hoja titulo="Ventas" clave="ventas" solo={solo} enc={enc}>
         <Tabla filas={h.ventas.filas} total={h.ventas.total} etiquetaTotal={`Total vendido a ${hoy}`} conMiles={conMiles} />

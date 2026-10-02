@@ -23,7 +23,10 @@ export function FormularioContacto({ contacto, volver, tipoInicial }: { contacto
               </option>
             ))}
           </Selector>
-          <Campo etiqueta="Dirección (opcional)" name="direccion" defaultValue={contacto?.direccion ?? ""} className="sm:col-span-2" autoComplete="street-address" />
+          <Campo etiqueta="Cédula o NIT (opcional)" name="documento" inputMode="numeric" defaultValue={contacto?.documento ?? ""} ayuda="Aparece en el recibo de consignación." />
+          <Campo etiqueta="Correo (opcional)" name="correo" type="email" inputMode="email" defaultValue={contacto?.correo ?? ""} autoComplete="email" />
+          <Campo etiqueta="Dirección (opcional)" name="direccion" defaultValue={contacto?.direccion ?? ""} autoComplete="street-address" />
+          <Campo etiqueta="Ciudad y barrio (opcional)" name="ciudad" defaultValue={contacto?.ciudad ?? ""} autoComplete="address-level2" />
           <AreaTexto etiqueta="Notas (opcional)" name="notas" defaultValue={contacto?.notas ?? ""} className="sm:col-span-2" />
         </div>
       </Tarjeta>

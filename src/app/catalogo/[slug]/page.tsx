@@ -1,21 +1,14 @@
-import { createClient } from "@supabase/supabase-js";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import type { Database } from "@/lib/tipos";
 import { CATEGORIAS, type CategoriaProducto } from "@/lib/tipos";
 import { pesos } from "@/lib/formato";
 import { urlFoto } from "@/lib/urls";
 import { enlaceWhatsApp } from "@/lib/ventas";
-import { entornoSupabase } from "@/lib/supabase/entorno";
+import { clienteAnonimo } from "@/lib/supabase/anonimo";
 import { Marca } from "@/components/marca";
 
 export const dynamic = "force-dynamic";
 
-/** Cliente anónimo: el catálogo es público y solo lee la vista catalogo_publico. */
-function clienteAnonimo() {
-  const { url, clave } = entornoSupabase();
-  return createClient<Database>(url, clave, { auth: { persistSession: false, autoRefreshToken: false } });
-}
 
 async function cargar(slug: string) {
   const supabase = clienteAnonimo();

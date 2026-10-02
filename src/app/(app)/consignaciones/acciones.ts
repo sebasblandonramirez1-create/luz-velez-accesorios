@@ -10,6 +10,7 @@ import { hoyIso } from "@/lib/formato";
 const esquemaConsignacion = z.object({
   contacto_id: z.string().uuid("Elige la vendedora."),
   fecha_entrega: z.string().optional(),
+  fecha_limite: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Revisa la fecha límite.").optional().or(z.literal("")),
   nota: z.string().default(""),
   lineas: z.array(z.object({ producto_id: z.string().uuid(), cantidad: z.number().int().positive(), valor_unitario: z.number().int().min(0) })).min(1, "Añade al menos un producto."),
 });
@@ -48,7 +49,7 @@ export async function registrarConsignacion(datos: DatosConsignacion): Promise<{
   const v = esquemaConsignacion.safeParse(datos);
   if (!v.success) return { error: v.error.issues[0]?.message ?? "Revisa los datos." };
   const supabase = await clienteServidor();
-  const { data, error } = await supabase.rpc("registrar_consignacion", { p: { ...v.data, fecha_entrega: fechaIso(v.data.fecha_entrega) } });
+  const { data, error } = await supabase.rpc("registrar_consignacion", { p: { ...v.data, fecha_entrega: fechaIso(v.data.fecha_entrega), fecha_limite: v.data.fecha_limite || undefined } });
   if (error) return { error: traducir(error) };
   revalidar();
   return { id: data as string };
@@ -85,8 +86,31 @@ export async function anularLiquidacion(fd: FormData) {
   redirect(`/consignaciones/${consignacionId}?aviso=${encodeURIComponent("Liquidación anulada: las cantidades y las devoluciones se deshicieron.")}`);
 }
 
+/** Genera (o renueva) el enlace para que quien recibe firme el recibo. */
+export async function pedirFirmaConsignacion(fd: FormData) {
+  const id = String(fd.get("id") ?? "");
+  const supabase = await clienteServidor();
+  const { error } = await supabase.rpc("preparar_firma_consignacion", { p_consignacion: id });
+  if (error) redirect(`/consignaciones/${id}?error=${encodeURIComponent(traducir(error))}#recibo`);
+  revalidatePath(`/consignaciones/${id}`);
+  redirect(`/consignaciones/${id}?aviso=${encodeURIComponent("Enlace de firma listo. Envíalo por WhatsApp o por correo.")}#recibo`);
+}
+
+/** Anula la firma o el enlace pendiente (solo la propietaria). */
+export async function anularFirmaConsignacion(fd: FormData) {
+  const id = String(fd.get("id") ?? "");
+  const supabase = await clienteServidor();
+  const { error } = await supabase.rpc("anular_firma_consignacion", { p_consignacion: id });
+  if (error) redirect(`/consignaciones/${id}?error=${encodeURIComponent(traducir(error))}#recibo`);
+  revalidatePath(`/consignaciones/${id}`);
+  redirect(`/consignaciones/${id}?aviso=${encodeURIComponent("Firma anulada. Puedes pedirla de nuevo.")}#recibo`);
+}
+
 function traducir(error: unknown): string {
   const m = (error as { message?: string })?.message ?? "";
+  if (/FECHA_LIMITE_INVALIDA/.test(m)) return "La fecha límite no puede ser anterior a la fecha de entrega.";
+  if (/RECIBO_YA_FIRMADO/.test(m)) return "Este recibo ya está firmado. Para pedir otra firma, la propietaria debe anular la actual.";
+  if (/RECIBO_NO_ENCONTRADO/.test(m)) return "La entrega no existe o fue anulada.";
   if (/CONSIGNACION_SIN_LINEAS/.test(m)) return "Añade al menos un producto.";
   if (/LIQUIDACION_VACIA/.test(m)) return "Marca al menos una pieza vendida o devuelta, o registra un abono.";
   if (/CONSIGNACION_CON_LIQUIDACIONES/.test(m)) return "Esta entrega ya tiene liquidaciones. Anula primero las liquidaciones.";

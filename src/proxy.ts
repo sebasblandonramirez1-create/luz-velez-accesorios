@@ -6,11 +6,11 @@ import { NextResponse, type NextRequest } from "next/server";
  * y redirige a /ingresar si no hay sesión. Las rutas públicas (ingreso,
  * callback de correo, catálogo público, manifest, iconos) quedan fuera.
  */
-const RUTAS_PUBLICAS = [/^\/ingresar/, /^\/auth\//, /^\/catalogo(\/|$)/, /^\/manifest/, /^\/iconos\//, /^\/sin-conexion/, /^\/reactivar(\/|$)/];
+const RUTAS_PUBLICAS = [/^\/ingresar/, /^\/auth\//, /^\/catalogo(\/|$)/, /^\/manifest/, /^\/iconos\//, /^\/sin-conexion/, /^\/reactivar(\/|$)/, /^\/firmar\//];
 
 // Rutas que no necesitan sesión ni refrescarla: ni siquiera se consulta a Supabase.
 // Importa cuando el proyecto está dormido: la consulta tardaría ~25 s en fallar.
-const RUTAS_SIN_SESION = [/^\/reactivar(\/|$)/, /^\/sin-conexion/, /^\/manifest/, /^\/iconos\//];
+const RUTAS_SIN_SESION = [/^\/reactivar(\/|$)/, /^\/firmar\//, /^\/sin-conexion/, /^\/manifest/, /^\/iconos\//];
 
 /** Espera la promesa como máximo `milisegundos`; si vence, devuelve `siVence`. */
 async function conTiempo<T>(promesa: Promise<T>, milisegundos: number, siVence: T): Promise<T> {

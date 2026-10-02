@@ -21,6 +21,10 @@ async function exigirPropietaria() {
 const esquemaNegocio = z.object({
   nombre_negocio: z.string().trim().min(1, "Escribe el nombre del negocio."),
   telefono_negocio: z.string().trim().default(""),
+  documento_negocio: z.string().trim().max(40).default(""),
+  correo_negocio: z.string().trim().toLowerCase().max(120).refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Revisa el correo del negocio.").default(""),
+  direccion_negocio: z.string().trim().max(200).default(""),
+  ciudad_negocio: z.string().trim().max(80).default(""),
   prefijo_general: z.string().trim().toUpperCase().regex(/^[A-Z]{1,6}$/, "El prefijo general debe tener de 1 a 6 letras."),
   prefijo_pulsera: z.string().trim().toUpperCase().regex(/^[A-Z]{1,6}$/, "El prefijo de pulseras debe tener de 1 a 6 letras."),
   stock_minimo_predeterminado: z.coerce.number().int().min(0),
@@ -36,6 +40,23 @@ export async function guardarNegocio(_e: EstadoAjustes, fd: FormData): Promise<E
   if (error) return { error: mensajeDeError(error) };
   revalidatePath("/", "layout");
   return { exito: "Datos del negocio guardados." };
+}
+
+const esquemaConsignacion = z.object({
+  consignacion_dias_plazo: z.coerce.number().int("El plazo debe ser un número entero de días.").min(1, "El plazo mínimo es 1 día.").max(365, "El plazo máximo es 365 días."),
+  consignacion_condiciones: z.string().trim().max(4000, "Las condiciones son demasiado largas."),
+});
+
+export async function guardarConsignacion(_e: EstadoAjustes, fd: FormData): Promise<EstadoAjustes> {
+  const p = await exigirPropietaria();
+  if ("error" in p) return p;
+  const datos = esquemaConsignacion.safeParse(Object.fromEntries(fd));
+  if (!datos.success) return { error: datos.error.issues[0]?.message };
+  const supabase = await clienteServidor();
+  const { error } = await supabase.from("ajustes").update(datos.data).eq("id", 1);
+  if (error) return { error: mensajeDeError(error) };
+  revalidatePath("/", "layout");
+  return { exito: "Recibo de consignación guardado. Aplica a los recibos sin firmar." };
 }
 
 const esquemaPrecios = z.object({

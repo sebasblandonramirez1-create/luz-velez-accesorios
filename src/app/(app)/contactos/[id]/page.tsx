@@ -37,6 +37,11 @@ export default async function PaginaContacto({ params }: PageProps<"/contactos/[
           ) : undefined
         }
       />
+      {(contacto.documento || contacto.correo || contacto.direccion || contacto.ciudad || contacto.telefono) && (
+        <p className="text-sm text-texto-suave">
+          {[contacto.documento && `C.C. / NIT ${contacto.documento}`, contacto.telefono, contacto.correo, [contacto.direccion, contacto.ciudad].filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
+        </p>
+      )}
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-borde bg-superficie p-3">
           <p className="text-xs text-texto-suave">Saldo por cobrar</p>

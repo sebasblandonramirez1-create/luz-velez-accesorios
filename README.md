@@ -388,12 +388,56 @@ Ver `.env.example`. Nunca subas `.env.local` al repositorio (está en `.gitignor
   liquidación deshace cantidades y retornos; una consignación con liquidaciones no se
   puede anular hasta anularlas. Todo se restaura desde Ajustes → Papelera.
 - **Comprobantes y hojas.** `/imprimir/ventas/<id>` y `/imprimir/consignaciones/<id>`
-  son páginas de impresión (Relación de entrega, VENTAS, DEVOLUCIONES por bloques y
+  son páginas de impresión (Recibo de entrega, VENTAS, DEVOLUCIONES por bloques y
   PENDIENTE DE PAGO, con el código y el precio en miles como en el papel). El PDF se
   obtiene con «Imprimir → Guardar como PDF» del navegador, también en el celular; no se
   genera en el servidor para no añadir dependencias.
 - **WhatsApp.** El comprobante y el recordatorio de saldo son textos listos para
   pegar; el botón abre `wa.me` con el número del contacto (indicativo 57).
+
+## Recibo de consignación, buscador de piezas y firma electrónica
+
+Añadido el 01/10/2026 (migración 10).
+
+- **Recibo de entrega con más datos.** El recibo lleva los datos del negocio (NIT o
+  cédula, teléfono, correo, dirección, ciudad: Ajustes → Negocio), el número y la
+  fecha, la **fecha límite para liquidar**, un bloque «Datos de quien recibe»
+  (nombre, cédula o NIT, celular, correo, dirección, ciudad), la relación de piezas con
+  totales, observaciones, las **condiciones de la consignación** y las dos firmas. Lo
+  que la ficha del contacto no tenga sale como renglón en blanco para llenarlo a mano.
+  El plazo en días y el texto de las condiciones se cambian en Ajustes → Recibo de
+  consignación. Un mismo contenido en tres salidas: página de impresión
+  (`/imprimir/consignaciones/<id>?hoja=entrega`), archivo PDF
+  (`src/lib/recibo-pdf.ts`, con `pdf-lib`, generado en el navegador) y página pública
+  de firma.
+- **Buscador de piezas al crear la entrega** (`src/components/selector-productos.tsx`,
+  lógica en `src/lib/filtros-productos.ts`): texto libre sobre código, nombre, material,
+  color y categoría (sin tildes, varias palabras); pestañas por categoría con conteo;
+  filtros de material y color; solo con existencias; solo lo añadido; orden por código,
+  nombre, precio o existencias; vista de fotos o de lista; y una lista con barra de
+  desplazamiento propia que muestra todos los resultados. Cada pieza se añade y se
+  ajusta con − / + sin salir de la lista.
+- **Compartir.** En el detalle de la consignación, tarjeta «Recibo de entrega»:
+  imprimir; **Compartir PDF** (en el celular abre el menú de compartir con el archivo
+  adjunto, para WhatsApp o correo; donde el navegador no lo permite, lo descarga);
+  **WhatsApp** y **Correo** con la relación de piezas como texto y el enlace del recibo.
+- **Firma electrónica.** «Pedir firma electrónica» genera un enlace
+  `/firmar/<token>` (15 días). Quien recibe lo abre sin cuenta, revisa el recibo,
+  completa sus datos, firma con el dedo y acepta las condiciones. Se guardan la imagen
+  de la firma, la fecha y hora, la IP, el navegador y una huella SHA-256 del contenido;
+  el recibo firmado muestra un código de verificación y el mismo enlace lo sigue
+  mostrando. Los datos que escriba completan la ficha del contacto donde estaba vacía.
+  Solo la propietaria puede anular una firma o un enlace.
+- **Seguridad.** `anon` sigue sin permiso sobre ninguna tabla: lee y firma únicamente a
+  través de `recibo_para_firmar(token)` y `firmar_recibo_consignacion(token, datos)`,
+  que exigen un token vigente, firman una sola vez y validan nombre, documento y firma.
+  Probado en `tests/db/recibo_firma.test.ts`.
+- **Alcance legal.** Es una firma electrónica simple (Ley 527 de 1999 y Decreto 2364
+  de 2012): sirve como constancia de que la persona recibió y aceptó, con evidencia de
+  quién, cuándo y desde dónde. No es una firma digital certificada por una entidad de
+  certificación. Si el negocio necesita un respaldo jurídico mayor (por ejemplo, un
+  título ejecutivo), conviene revisar el texto de las condiciones con una abogada o un
+  abogado.
 
 ## Gastos, compras, caja y reportes (Fase 3)
 

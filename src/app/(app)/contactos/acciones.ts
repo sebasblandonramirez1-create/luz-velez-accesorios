@@ -15,12 +15,15 @@ const esquema = z.object({
   telefono: z.string().trim().default(""),
   tipo: z.enum(["cliente", "vendedora", "mayorista", "proveedor"]),
   direccion: z.string().trim().default(""),
+  documento: z.string().trim().max(40).default(""),
+  correo: z.string().trim().toLowerCase().max(120).refine((v) => v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "Revisa el correo electrónico.").default(""),
+  ciudad: z.string().trim().max(80).default(""),
   notas: z.string().trim().default(""),
 });
 
 function leer(fd: FormData) {
   const t = (k: string) => String(fd.get(k) ?? "");
-  return esquema.safeParse({ nombre: t("nombre"), telefono: t("telefono"), tipo: t("tipo"), direccion: t("direccion"), notas: t("notas") });
+  return esquema.safeParse({ nombre: t("nombre"), telefono: t("telefono"), tipo: t("tipo"), direccion: t("direccion"), documento: t("documento"), correo: t("correo"), ciudad: t("ciudad"), notas: t("notas") });
 }
 
 export async function guardarContacto(_estado: EstadoContacto, fd: FormData): Promise<EstadoContacto> {

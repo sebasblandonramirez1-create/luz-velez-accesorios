@@ -58,9 +58,13 @@ const formatoFechaHora = new Intl.DateTimeFormat("es-CO", {
   hour12: false,
 });
 
-/** Fecha en dd/mm/aaaa. */
+/** Fecha en dd/mm/aaaa. Un día suelto («2026-10-31») se muestra tal cual, sin cambio de zona horaria. */
 export function fecha(valor: string | Date | null | undefined): string {
   if (!valor) return "";
+  if (typeof valor === "string") {
+    const dia = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor);
+    if (dia) return `${dia[3]}/${dia[2]}/${dia[1]}`;
+  }
   const d = typeof valor === "string" ? new Date(valor) : valor;
   if (Number.isNaN(d.getTime())) return "";
   return formatoFecha.format(d);
@@ -84,6 +88,14 @@ export function hoyIso(ahora: Date = new Date()): string {
   }).formatToParts(ahora);
   const p = (t: string) => partes.find((x) => x.type === t)?.value ?? "";
   return `${p("year")}-${p("month")}-${p("day")}`;
+}
+
+/** Suma días a un día aaaa-mm-dd y devuelve otro día aaaa-mm-dd. */
+export function sumarDias(dia: string, dias: number): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dia);
+  if (!m) return dia;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + dias));
+  return d.toISOString().slice(0, 10);
 }
 
 /** «hace 3 días», «hoy», «ayer», para listas y alertas. */

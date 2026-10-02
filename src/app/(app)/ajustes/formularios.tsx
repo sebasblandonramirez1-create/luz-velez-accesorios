@@ -1,12 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Aviso, Campo, Casilla, Selector, Tarjeta, BotonEnviar } from "@/components/ui";
+import { Aviso, AreaTexto, Campo, Casilla, Selector, Tarjeta, BotonEnviar } from "@/components/ui";
 import { pesos } from "@/lib/formato";
 import { precioPublicoSugerido, type RedondeoPrecio, type ReglaPrecioPublico } from "@/lib/precios";
 import type { Ajustes } from "@/lib/tipos";
 import { LINEAS_ETIQUETA, ROLLOS, type LineaEtiqueta } from "@/lib/etiquetas";
-import { guardarCatalogo, guardarEtiqueta, guardarNegocio, guardarPerfil, guardarPrecios, guardarRespaldo, type EstadoAjustes } from "./acciones";
+import { guardarCatalogo, guardarConsignacion, guardarEtiqueta, guardarNegocio, guardarPerfil, guardarPrecios, guardarRespaldo, type EstadoAjustes } from "./acciones";
 
 function Mensajes({ estado }: { estado: EstadoAjustes }) {
   if (estado.error) return <Aviso tipo="error">{estado.error}</Aviso>;
@@ -34,6 +34,7 @@ export function FormulariosAjustes({ ajustes, urlApp }: { ajustes: Ajustes; urlA
   return (
     <>
       <SeccionNegocio ajustes={ajustes} />
+      <SeccionConsignacion ajustes={ajustes} />
       <SeccionPrecios ajustes={ajustes} />
       <SeccionEtiqueta ajustes={ajustes} />
       <SeccionCatalogo ajustes={ajustes} urlApp={urlApp} />
@@ -51,10 +52,45 @@ function SeccionNegocio({ ajustes }: { ajustes: Ajustes }) {
         <div className="grid gap-3 sm:grid-cols-2">
           <Campo etiqueta="Nombre del negocio" name="nombre_negocio" defaultValue={ajustes.nombre_negocio} required ayuda="Aparece en la etiqueta y en los comprobantes." />
           <Campo etiqueta="Teléfono del negocio" name="telefono_negocio" type="tel" defaultValue={ajustes.telefono_negocio} />
+          <Campo etiqueta="NIT o cédula del negocio" name="documento_negocio" defaultValue={ajustes.documento_negocio} ayuda="Aparece en el recibo de consignación." />
+          <Campo etiqueta="Correo del negocio" name="correo_negocio" type="email" defaultValue={ajustes.correo_negocio} />
+          <Campo etiqueta="Dirección del negocio" name="direccion_negocio" defaultValue={ajustes.direccion_negocio} />
+          <Campo etiqueta="Ciudad" name="ciudad_negocio" defaultValue={ajustes.ciudad_negocio} />
           <Campo etiqueta="Prefijo de códigos (general)" name="prefijo_general" defaultValue={ajustes.prefijo_general} autoCapitalize="characters" ayuda="Ej.: SLA → SLA013" />
           <Campo etiqueta="Prefijo de códigos (pulseras)" name="prefijo_pulsera" defaultValue={ajustes.prefijo_pulsera} autoCapitalize="characters" ayuda="Ej.: SLAP → SLAP026" />
           <Campo etiqueta="Stock mínimo por defecto" name="stock_minimo_predeterminado" type="number" min={0} defaultValue={ajustes.stock_minimo_predeterminado} ayuda="Se usa al crear productos nuevos." />
         </div>
+        <BotonEnviar grande={false} className="sm:w-auto">
+          Guardar
+        </BotonEnviar>
+      </form>
+    </Tarjeta>
+  );
+}
+
+function SeccionConsignacion({ ajustes }: { ajustes: Ajustes }) {
+  const [estado, accion] = useActionState<EstadoAjustes, FormData>(guardarConsignacion, {});
+  return (
+    <Tarjeta titulo="Recibo de consignación">
+      <form action={accion} className="space-y-3">
+        <Mensajes estado={estado} />
+        <Campo
+          etiqueta="Plazo para liquidar (días)"
+          name="consignacion_dias_plazo"
+          type="number"
+          min={1}
+          max={365}
+          defaultValue={ajustes.consignacion_dias_plazo}
+          ayuda="La fecha límite de cada entrega se propone sumando estos días; se puede cambiar al crear la entrega."
+          className="sm:max-w-xs"
+        />
+        <AreaTexto
+          etiqueta="Condiciones que aparecen en el recibo"
+          name="consignacion_condiciones"
+          defaultValue={ajustes.consignacion_condiciones}
+          rows={9}
+          ayuda="Una condición por renglón. Quien recibe las acepta al firmar. Si necesitas un texto con alcance legal específico, revísalo con una abogada o un abogado."
+        />
         <BotonEnviar grande={false} className="sm:w-auto">
           Guardar
         </BotonEnviar>

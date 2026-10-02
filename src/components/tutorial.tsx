@@ -11,7 +11,7 @@ const PASOS = [
   { titulo: "Bienvenida", texto: "Esta app reemplaza las hojas de Excel. Todo lo que registres queda guardado en la nube y se ve desde el celular y el computador.", enlace: null },
   { titulo: "1. Tus productos", texto: "En «Productos» añades cada pieza con foto, código y precios. También puedes importar tu catálogo desde Excel.", enlace: { href: "/productos", texto: "Ir a productos" } },
   { titulo: "2. Ventas en tres toques", texto: "En «Ventas» buscas el producto, pones la cantidad y confirmas. El inventario se descuenta solo y puedes enviar el comprobante por WhatsApp.", enlace: { href: "/ventas/nueva", texto: "Registrar una venta" } },
-  { titulo: "3. Consignación como tus hojas", texto: "En «Consignación» registras lo que se lleva cada vendedora y, cuando te trae la cuenta, marcas lo vendido y lo devuelto. Las hojas VENTAS, DEVOLUCIONES y PENDIENTE DE PAGO se imprimen igual que hoy.", enlace: { href: "/consignaciones", texto: "Ver consignaciones" } },
+  { titulo: "3. Consignación como tus hojas", texto: "En «Consignación» registras lo que se lleva cada vendedora y, cuando te trae la cuenta, marcas lo vendido y lo devuelto. Las hojas VENTAS, DEVOLUCIONES y PENDIENTE DE PAGO se imprimen igual que hoy, y el recibo de entrega se puede enviar por WhatsApp para que lo firmen desde el celular.", enlace: { href: "/consignaciones", texto: "Ver consignaciones" } },
   { titulo: "4. Todo lo demás en «Más»", texto: "Inventario, contactos, cuentas por cobrar, compras, gastos, caja del día, reportes, etiquetas y ajustes. Si borras algo por error, está en la papelera 30 días.", enlace: { href: "/ajustes", texto: "Abrir «Más»" } },
 ];
 

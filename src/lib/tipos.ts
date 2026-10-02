@@ -93,6 +93,12 @@ export type Ajustes = {
   id: number;
   nombre_negocio: string;
   telefono_negocio: string;
+  documento_negocio: string;
+  direccion_negocio: string;
+  ciudad_negocio: string;
+  correo_negocio: string;
+  consignacion_dias_plazo: number;
+  consignacion_condiciones: string;
   prefijo_general: string;
   prefijo_pulsera: string;
   regla_precio_publico: "manual" | "multiplicador";
@@ -119,6 +125,9 @@ export type Contacto = {
   telefono: string;
   tipo: TipoContacto;
   direccion: string;
+  documento: string;
+  correo: string;
+  ciudad: string;
   notas: string;
   creado_por: string | null;
   creado_en: string;
@@ -232,6 +241,7 @@ export type Consignacion = {
   numero: number;
   contacto_id: string;
   fecha_entrega: string;
+  fecha_limite: string | null;
   estado: EstadoConsignacion;
   total_entregado: number;
   total_vendido: number;
@@ -242,6 +252,28 @@ export type Consignacion = {
   creado_en: string;
   actualizado_en: string;
   eliminado_en: string | null;
+};
+
+/** Recibo de entrega: enlace de firma y, cuando se firma, los datos y la evidencia. */
+export type ConsignacionRecibo = {
+  id: string;
+  consignacion_id: string;
+  token: string;
+  token_vence: string;
+  receptor_nombre: string;
+  receptor_documento: string;
+  receptor_telefono: string;
+  receptor_direccion: string;
+  receptor_ciudad: string;
+  receptor_correo: string;
+  firma_imagen: string | null;
+  firmado_en: string | null;
+  firma_ip: string;
+  firma_agente: string;
+  firma_huella: string;
+  solicitado_por: string | null;
+  creado_en: string;
+  actualizado_en: string;
 };
 
 export type ConsignacionLinea = {
@@ -449,7 +481,7 @@ export type Database = {
       ajustes: { Row: Ajustes; Insert: Partial<Ajustes>; Update: Partial<Ajustes>; Relationships: [] };
       contactos: {
         Row: Contacto;
-        Insert: Insertable<Contacto, "id" | "telefono" | "tipo" | "direccion" | "notas" | "creado_por" | "creado_en" | "actualizado_en" | "eliminado_en">;
+        Insert: Insertable<Contacto, "id" | "telefono" | "tipo" | "direccion" | "documento" | "correo" | "ciudad" | "notas" | "creado_por" | "creado_en" | "actualizado_en" | "eliminado_en">;
         Update: Partial<Contacto>;
         Relationships: [];
       };
@@ -509,6 +541,12 @@ export type Database = {
         Insert: Partial<Consignacion>;
         Update: Partial<Consignacion>;
         Relationships: [{ foreignKeyName: "consignaciones_contacto_id_fkey"; columns: ["contacto_id"]; isOneToOne: false; referencedRelation: "contactos"; referencedColumns: ["id"] }];
+      };
+      consignacion_recibos: {
+        Row: ConsignacionRecibo;
+        Insert: never;
+        Update: never;
+        Relationships: [{ foreignKeyName: "consignacion_recibos_consignacion_id_fkey"; columns: ["consignacion_id"]; isOneToOne: true; referencedRelation: "consignaciones"; referencedColumns: ["id"] }];
       };
       consignacion_lineas: {
         Row: ConsignacionLinea;
@@ -598,6 +636,10 @@ export type Database = {
       caja_del_dia: { Args: { p_dia: string }; Returns: CajaDia };
       cerrar_caja: { Args: { p_dia: string; p_efectivo_contado: number; p_nota?: string }; Returns: string };
       reporte_periodo: { Args: { p_desde: string; p_hasta: string }; Returns: Reporte };
+      preparar_firma_consignacion: { Args: { p_consignacion: string; p_dias?: number }; Returns: string };
+      anular_firma_consignacion: { Args: { p_consignacion: string }; Returns: undefined };
+      recibo_para_firmar: { Args: { p_token: string }; Returns: Record<string, unknown> | null };
+      firmar_recibo_consignacion: { Args: { p_token: string; p: Record<string, unknown> }; Returns: { firmado_en: string; huella: string } };
       datos_publicos_negocio: { Args: Record<string, never>; Returns: { nombre_negocio: string; telefono_negocio: string; catalogo_slug: string; catalogo_publico_activo: boolean }[] };
     };
     Enums: {
