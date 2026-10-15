@@ -119,6 +119,16 @@ export type Ajustes = {
   actualizado_en: string;
 };
 
+/** Clasificación de productos por código corto, administrada en Ajustes. */
+export type ClasificacionProducto = {
+  codigo: string;
+  nombre: string;
+  orden: number;
+  activa: boolean;
+  creado_en: string;
+  actualizado_en: string;
+};
+
 export type Contacto = {
   id: string;
   nombre: string;
@@ -140,6 +150,8 @@ export type Producto = {
   codigo: string;
   nombre: string;
   categoria: CategoriaProducto;
+  /** Código de clasificación (CP, CM, CCH, PL, PLM…), o null si falta clasificar. */
+  clasificacion: string | null;
   subcategoria: string;
   material: string;
   color: string;
@@ -495,6 +507,12 @@ export type Database = {
     Tables: {
       perfiles: { Row: Perfil; Insert: Insertable<Perfil, "creado_en" | "actualizado_en" | "activo" | "nombre" | "correo" | "rol">; Update: Partial<Perfil>; Relationships: [] };
       ajustes: { Row: Ajustes; Insert: Partial<Ajustes>; Update: Partial<Ajustes>; Relationships: [] };
+      clasificaciones_producto: {
+        Row: ClasificacionProducto;
+        Insert: Insertable<ClasificacionProducto, "orden" | "activa" | "creado_en" | "actualizado_en">;
+        Update: Partial<ClasificacionProducto>;
+        Relationships: [];
+      };
       contactos: {
         Row: Contacto;
         Insert: Insertable<Contacto, "id" | "telefono" | "tipo" | "direccion" | "documento" | "correo" | "ciudad" | "notas" | "creado_por" | "creado_en" | "actualizado_en" | "eliminado_en">;
@@ -509,7 +527,7 @@ export type Database = {
         ];
         Insert: Insertable<
           Producto,
-          | "id" | "subcategoria" | "material" | "color" | "precio_base" | "precio_publico" | "precio_mayorista" | "costo_compra"
+          | "id" | "clasificacion" | "subcategoria" | "material" | "color" | "precio_base" | "precio_publico" | "precio_mayorista" | "costo_compra"
           | "stock_actual" | "stock_minimo" | "proveedor_id" | "activo" | "visible_catalogo" | "notas" | "creado_por" | "creado_en"
           | "actualizado_en" | "eliminado_en" | "categoria"
         >;

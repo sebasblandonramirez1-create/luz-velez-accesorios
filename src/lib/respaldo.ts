@@ -23,6 +23,7 @@ export const TABLAS_RESPALDO = [
   "invitaciones",
   "ajustes",
   "contactos",
+  "clasificaciones_producto",
   "productos",
   "producto_fotos",
   "precio_historial",

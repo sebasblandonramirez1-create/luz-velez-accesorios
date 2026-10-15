@@ -1,6 +1,7 @@
 import { fecha, fechaHora, pesos } from "@/lib/formato";
 import { CAMPOS_RECEPTOR, codigoVerificacion, leyendaModificaciones, parrafosCondiciones, quienRecibe, totalesRecibo, type DatosRecibo } from "@/lib/recibo";
 import { numeroDocumento } from "@/lib/ventas";
+import { conteoPorClasificacion } from "@/lib/clasificaciones";
 
 /**
  * Recibo de entrega en consignación, en negro sobre blanco, listo para
@@ -16,6 +17,7 @@ export function ReciboConsignacion({ datos }: { datos: DatosRecibo }) {
   const n = datos.negocio;
   const condiciones = parrafosCondiciones(datos.condiciones);
   const modificada = leyendaModificaciones(datos);
+  const porClasificacion = conteoPorClasificacion(datos.lineas, datos.clasificaciones ?? []);
   return (
     <article className="bg-white text-black">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b-2 border-black pb-3">
@@ -51,6 +53,7 @@ export function ReciboConsignacion({ datos }: { datos: DatosRecibo }) {
           <table className="mt-1 w-full border-collapse text-sm">
             <thead>
               <tr className="border-b-2 border-black text-left">
+                <th className="py-1 pr-2">Clas.</th>
                 <th className="py-1 pr-2">Código</th>
                 <th className="py-1 pr-2">Descripción</th>
                 <th className="py-1 pr-2 text-right">Cant.</th>
@@ -61,6 +64,7 @@ export function ReciboConsignacion({ datos }: { datos: DatosRecibo }) {
             <tbody>
               {datos.lineas.map((l) => (
                 <tr key={l.codigo} className="border-b border-gray-300">
+                  <td className="py-1 pr-2 font-mono font-bold">{l.clasificacion ?? "—"}</td>
                   <td className="py-1 pr-2 font-mono font-semibold">{l.codigo}</td>
                   <td className="py-1 pr-2 uppercase">{l.nombre}</td>
                   <td className="py-1 pr-2 text-right font-semibold">{l.cantidad}</td>
@@ -71,7 +75,7 @@ export function ReciboConsignacion({ datos }: { datos: DatosRecibo }) {
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-black font-bold">
-                <td colSpan={2} className="py-1 pr-2 font-normal">
+                <td colSpan={3} className="py-1 pr-2 font-normal">
                   {t.referencias} {t.referencias === 1 ? "referencia" : "referencias"} · {t.piezas} {t.piezas === 1 ? "pieza" : "piezas"}
                 </td>
                 <td colSpan={2} className="py-1 pr-2 text-right uppercase">
@@ -82,6 +86,27 @@ export function ReciboConsignacion({ datos }: { datos: DatosRecibo }) {
             </tfoot>
           </table>
         </div>
+        {porClasificacion.length > 0 && (
+          <div className="mt-2 text-sm">
+            <p className="text-xs font-bold uppercase tracking-wide">Conteo por clasificación</p>
+            <table className="mt-1 border-collapse text-sm">
+              <tbody>
+                {porClasificacion.map((c) => (
+                  <tr key={c.codigo ?? "sin"}>
+                    <td className="pr-3 font-mono font-bold">{c.codigo ?? "—"}</td>
+                    <td className="pr-3">{c.nombre}</td>
+                    <td className="pr-3 text-right">
+                      {c.piezas} {c.piezas === 1 ? "pieza" : "piezas"}
+                    </td>
+                    <td className="text-right text-gray-600">
+                      {c.referencias} {c.referencias === 1 ? "referencia" : "referencias"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         <p className="mt-2 flex items-end gap-2 text-sm">
           <span className="shrink-0 text-xs text-gray-600">Observaciones:</span>
           <span className="min-h-6 flex-1 border-b border-gray-400">{datos.consignacion.nota}</span>

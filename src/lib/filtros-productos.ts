@@ -4,12 +4,15 @@
  * tests/filtros_productos.test.ts.
  */
 import { CATEGORIAS, type CategoriaProducto } from "./tipos";
+import { FILTRO_SIN_CLASIFICAR } from "./clasificaciones";
 
 export interface ProductoFiltrable {
   id: string;
   codigo: string;
   nombre: string;
   categoria: CategoriaProducto;
+  /** Código de clasificación (CP, PL…) o null si falta clasificar. */
+  clasificacion?: string | null;
   material: string;
   color: string;
   stock_actual: number;
@@ -30,6 +33,8 @@ export const ORDENES_PRODUCTOS: Record<OrdenProductos, string> = {
 export interface FiltrosProductos {
   texto: string;
   categoria: CategoriaProducto | "";
+  /** "" todas · "sin" sin clasificar · un código. */
+  clasificacion: string;
   material: string;
   color: string;
   soloConStock: boolean;
@@ -37,7 +42,7 @@ export interface FiltrosProductos {
   orden: OrdenProductos;
 }
 
-export const FILTROS_INICIALES: FiltrosProductos = { texto: "", categoria: "", material: "", color: "", soloConStock: true, soloAnadidos: false, orden: "codigo" };
+export const FILTROS_INICIALES: FiltrosProductos = { texto: "", categoria: "", clasificacion: "", material: "", color: "", soloConStock: true, soloAnadidos: false, orden: "codigo" };
 
 /** Minúsculas y sin tildes, para comparar «perla» con «Pérla». */
 export function normalizar(texto: string): string {
@@ -50,7 +55,7 @@ export function normalizar(texto: string): string {
 
 function coincideTexto(p: ProductoFiltrable, palabras: string[]): boolean {
   if (palabras.length === 0) return true;
-  const pajar = normalizar(`${p.codigo} ${p.nombre} ${p.material} ${p.color} ${CATEGORIAS[p.categoria]}`);
+  const pajar = normalizar(`${p.codigo} ${p.nombre} ${p.material} ${p.color} ${CATEGORIAS[p.categoria]} ${p.clasificacion ?? ""}`);
   return palabras.every((w) => pajar.includes(w));
 }
 
@@ -73,6 +78,7 @@ export function filtrarProductos<T extends ProductoFiltrable>(productos: T[], f:
       // Lo que ya está en la entrega se sigue viendo aunque el stock restante sea 0.
       if (f.soloConStock && p.stock_actual <= 0 && !anadidos.has(p.id)) return false;
       if (f.categoria && p.categoria !== f.categoria) return false;
+      if (f.clasificacion === FILTRO_SIN_CLASIFICAR ? Boolean(p.clasificacion) : f.clasificacion && p.clasificacion !== f.clasificacion) return false;
       if (material && normalizar(p.material) !== material) return false;
       if (color && normalizar(p.color) !== color) return false;
       return coincideTexto(p, palabras);
@@ -96,10 +102,12 @@ export function facetas(productos: ProductoFiltrable[]) {
   const porCategoria = new Map<CategoriaProducto, number>();
   for (const p of productos) porCategoria.set(p.categoria, (porCategoria.get(p.categoria) ?? 0) + 1);
   const categorias = (Object.keys(CATEGORIAS) as CategoriaProducto[]).filter((c) => porCategoria.has(c)).map((c) => ({ valor: c, etiqueta: CATEGORIAS[c], cantidad: porCategoria.get(c)! }));
-  return { categorias, materiales: distintos(productos.map((p) => p.material)), colores: distintos(productos.map((p) => p.color)) };
+  const clasificaciones = distintos(productos.map((p) => p.clasificacion ?? ""));
+  const sinClasificar = productos.filter((p) => !p.clasificacion).length;
+  return { categorias, materiales: distintos(productos.map((p) => p.material)), colores: distintos(productos.map((p) => p.color)), clasificaciones, sinClasificar };
 }
 
 /** Cuántos filtros están puestos (para el botón «Limpiar filtros»). */
 export function filtrosActivos(f: FiltrosProductos): number {
-  return [f.texto.trim() !== "", f.categoria !== "", f.material !== "", f.color !== "", !f.soloConStock, f.soloAnadidos, f.orden !== "codigo"].filter(Boolean).length;
+  return [f.texto.trim() !== "", f.categoria !== "", f.clasificacion !== "", f.material !== "", f.color !== "", !f.soloConStock, f.soloAnadidos, f.orden !== "codigo"].filter(Boolean).length;
 }

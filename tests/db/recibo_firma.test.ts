@@ -94,7 +94,7 @@ describe("enlace de firma", () => {
       expect(r.estado).toBe("pendiente");
       expect(r.negocio).toMatchObject({ nombre: "Luzazul Accesorios", documento: "900.123.456-7", ciudad: "Medellín" });
       expect(r.contacto).toMatchObject({ nombre: "Marcela Ríos", telefono: "3001112233", documento: "" });
-      expect(r.lineas).toEqual([{ codigo: "SLA013", nombre: "Aretas perla", cantidad: 2, valor_unitario: 40000 }]);
+      expect(r.lineas).toEqual([{ codigo: "SLA013", nombre: "Aretas perla", clasificacion: null, cantidad: 2, valor_unitario: 40000 }]);
       expect((r.consignacion as { total_entregado: number; fecha_limite: string }).total_entregado).toBe(80000);
       expect((r.consignacion as { fecha_limite: string }).fecha_limite).toBe("2026-10-31");
       expect(String(r.condiciones)).toMatch(/consignación/);

@@ -5,6 +5,11 @@ import { MiniaturaProducto } from "./miniatura";
 import { pesos } from "@/lib/formato";
 import { facetas, filtrarProductos, filtrosActivos, FILTROS_INICIALES, ORDENES_PRODUCTOS, type FiltrosProductos, type OrdenProductos, type ProductoFiltrable } from "@/lib/filtros-productos";
 import type { CategoriaProducto } from "@/lib/tipos";
+import { FILTRO_SIN_CLASIFICAR } from "@/lib/clasificaciones";
+
+function Clase({ codigo }: { codigo: string | null | undefined }) {
+  return codigo ? <span className="rounded bg-primario-claro px-1 text-[0.65rem] font-bold text-primario-oscuro">{codigo}</span> : <span className="rounded bg-alerta-claro px-1 text-[0.65rem] font-semibold text-alerta">Sin clas.</span>;
+}
 
 type Vista = "cuadricula" | "lista";
 
@@ -73,7 +78,7 @@ export function SelectorProductos({
           autoComplete="off"
           aria-label="Buscar producto"
         />
-        <button type="button" onClick={() => setMasFiltros((v) => !v)} aria-expanded={masFiltros} className={`min-h-12 shrink-0 rounded-xl border px-4 font-semibold ${masFiltros || f.material || f.color || f.orden !== "codigo" ? "border-primario bg-primario-claro text-primario-oscuro" : "border-borde bg-superficie"}`}>
+        <button type="button" onClick={() => setMasFiltros((v) => !v)} aria-expanded={masFiltros} className={`min-h-12 shrink-0 rounded-xl border px-4 font-semibold ${masFiltros || f.material || f.color || f.clasificacion || f.orden !== "codigo" ? "border-primario bg-primario-claro text-primario-oscuro" : "border-borde bg-superficie"}`}>
           Filtros
         </button>
       </div>
@@ -91,7 +96,19 @@ export function SelectorProductos({
       </div>
 
       {masFiltros && (
-        <div className="grid gap-3 rounded-xl border border-borde bg-fondo p-3 sm:grid-cols-3">
+        <div className="grid gap-3 rounded-xl border border-borde bg-fondo p-3 sm:grid-cols-4">
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold">Clasificación</span>
+            <select className="campo" value={f.clasificacion} onChange={(e) => cambiar({ clasificacion: e.target.value })}>
+              <option value="">Todas</option>
+              {opciones.clasificaciones.map((k) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
+              ))}
+              {opciones.sinClasificar > 0 && <option value={FILTRO_SIN_CLASIFICAR}>Sin clasificar ({opciones.sinClasificar})</option>}
+            </select>
+          </label>
           <label className="block">
             <span className="mb-1 block text-sm font-semibold">Material</span>
             <select className="campo" value={f.material} onChange={(e) => cambiar({ material: e.target.value })}>
@@ -168,7 +185,10 @@ export function SelectorProductos({
                 <li key={p.id} className={`flex flex-col items-center gap-1 rounded-xl border bg-superficie p-2 text-center ${cantidad > 0 ? "border-acento ring-2 ring-acento/40" : "border-borde"}`}>
                   <button type="button" onClick={() => cantidad < p.stock_actual && onCambiar(p.id, cantidad + 1)} disabled={p.stock_actual <= 0} className="flex w-full flex-col items-center gap-1" aria-label={`Añadir ${p.nombre} (${p.codigo})`}>
                     <MiniaturaProducto ruta={p.miniatura} nombre={p.nombre} tamano={88} />
-                    <span className="w-full truncate text-xs font-bold">{p.codigo}</span>
+                    <span className="flex w-full items-center justify-center gap-1 truncate text-xs font-bold">
+                      <Clase codigo={p.clasificacion} />
+                      {p.codigo}
+                    </span>
                     <span className="line-clamp-2 min-h-8 w-full text-xs leading-tight text-texto-suave">{p.nombre}</span>
                     <span className="text-sm font-semibold">$ {pesos(p.precio_base)}</span>
                     <span className={`text-xs ${p.stock_actual <= 0 ? "text-peligro" : "text-texto-suave"}`}>{p.stock_actual} en stock</span>
@@ -188,7 +208,7 @@ export function SelectorProductos({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-semibold">{p.nombre}</span>
                     <span className="block truncate text-sm text-texto-suave">
-                      {p.codigo}
+                      <Clase codigo={p.clasificacion} /> {p.codigo}
                       {p.material ? ` · ${p.material}` : ""}
                       {p.color ? ` · ${p.color}` : ""}
                     </span>

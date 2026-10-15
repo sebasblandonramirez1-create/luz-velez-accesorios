@@ -3,13 +3,28 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CATEGORIAS } from "@/lib/tipos";
+import { FILTRO_SIN_CLASIFICAR } from "@/lib/clasificaciones";
 
-export function Filtros({ q, categoria, filtro, orden }: { q: string; categoria: string; filtro: string; orden: string }) {
+export function Filtros({
+  q,
+  categoria,
+  clasificacion,
+  filtro,
+  orden,
+  clasificaciones,
+}: {
+  q: string;
+  categoria: string;
+  clasificacion: string;
+  filtro: string;
+  orden: string;
+  clasificaciones: { codigo: string; nombre: string; activa: boolean }[];
+}) {
   const router = useRouter();
   const [texto, setTexto] = useState(q);
 
   function navegar(cambios: Record<string, string>) {
-    const params = new URLSearchParams({ q, categoria, filtro, orden, ...cambios });
+    const params = new URLSearchParams({ q, categoria, clasificacion, filtro, orden, ...cambios });
     for (const [k, v] of [...params.entries()]) if (!v) params.delete(k);
     router.replace(`/productos?${params.toString()}`);
   }
@@ -43,6 +58,16 @@ export function Filtros({ q, categoria, filtro, orden }: { q: string; categoria:
               {v}
             </option>
           ))}
+        </select>
+        <select aria-label="Clasificación" className="campo w-auto min-w-36" value={clasificacion} onChange={(e) => navegar({ clasificacion: e.target.value })}>
+          <option value="">Todas las clasificaciones</option>
+          {clasificaciones.map((k) => (
+            <option key={k.codigo} value={k.codigo}>
+              {k.codigo} · {k.nombre}
+              {k.activa ? "" : " (inactiva)"}
+            </option>
+          ))}
+          <option value={FILTRO_SIN_CLASIFICAR}>Sin clasificar</option>
         </select>
         <select aria-label="Filtro" className="campo w-auto min-w-36" value={filtro} onChange={(e) => navegar({ filtro: e.target.value })}>
           <option value="">Activos</option>

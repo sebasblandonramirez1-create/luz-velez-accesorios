@@ -27,6 +27,7 @@ export default async function PaginaAjustes() {
           ["/gastos", "− Gastos", esPropietaria],
           ["/caja", "▤ Caja del día", esPropietaria],
           ["/reportes", "≣ Reportes", esPropietaria],
+          ["/ajustes/clasificaciones", "🏷 Clasificaciones", esPropietaria],
           ["/ajustes/usuarios", "👥 Usuarias", esPropietaria],
           ["/ajustes/respaldos", "💾 Copias de seguridad", esPropietaria],
           ["/ajustes/papelera", "🗑️ Papelera", esPropietaria],

@@ -4,7 +4,7 @@ import { useActionState, useEffect, useMemo, useState } from "react";
 import { Aviso, AreaTexto, Campo, Casilla, Selector, Tarjeta, BotonEnviar, BotonEnlace } from "@/components/ui";
 import { CampoPesos } from "@/components/campo-pesos";
 import { SubirFotos } from "@/components/subir-fotos";
-import { CATEGORIA_SINGULAR, MATERIALES_SUGERIDOS, type Ajustes, type Contacto, type Producto, type CategoriaProducto } from "@/lib/tipos";
+import { CATEGORIA_SINGULAR, MATERIALES_SUGERIDOS, type Ajustes, type ClasificacionProducto, type Contacto, type Producto, type CategoriaProducto } from "@/lib/tipos";
 import { normalizarCodigo, prefijoParaCategoria } from "@/lib/codigos";
 import { precioPublicoSugerido } from "@/lib/precios";
 import { enMiles, pesos } from "@/lib/formato";
@@ -13,10 +13,12 @@ import { crearProducto, editarProducto, siguienteCodigoLibre, type EstadoFormula
 export function FormularioProducto({
   ajustes,
   proveedores,
+  clasificaciones,
   producto,
 }: {
   ajustes: Ajustes;
   proveedores: Pick<Contacto, "id" | "nombre">[];
+  clasificaciones: Pick<ClasificacionProducto, "codigo" | "nombre" | "activa">[];
   producto?: Producto;
 }) {
   const esEdicion = Boolean(producto);
@@ -24,6 +26,9 @@ export function FormularioProducto({
   const [idNuevo] = useState(() => producto?.id ?? crypto.randomUUID());
 
   const [categoria, setCategoria] = useState<CategoriaProducto>(producto?.categoria ?? "areta");
+  const [clasificacion, setClasificacion] = useState(producto?.clasificacion ?? "");
+  // Las activas, más la actual del producto aunque esté desactivada.
+  const opcionesClasificacion = clasificaciones.filter((k) => k.activa || k.codigo === producto?.clasificacion);
   const [codigo, setCodigo] = useState(producto?.codigo ?? "");
   const [codigoManual, setCodigoManual] = useState(esEdicion);
   const [precioBase, setPrecioBase] = useState<number | null>(producto?.precio_base ?? null);
@@ -55,6 +60,21 @@ export function FormularioProducto({
 
       <Tarjeta titulo="Datos básicos">
         <div className="grid gap-4 sm:grid-cols-2">
+          <Selector
+            etiqueta="Clasificación"
+            name="clasificacion"
+            value={clasificacion}
+            onChange={(e) => setClasificacion(e.target.value)}
+            ayuda={clasificacion ? "Sale junto al código en recibos, hojas y listas." : "Sin clasificar: la app lo señalará hasta que elijas una."}
+            className={clasificacion ? "" : "rounded-xl ring-2 ring-alerta/50"}
+          >
+            <option value="">Sin clasificar</option>
+            {opcionesClasificacion.map((k) => (
+              <option key={k.codigo} value={k.codigo}>
+                {k.codigo} · {k.nombre}
+              </option>
+            ))}
+          </Selector>
           <Selector etiqueta="Categoría" name="categoria" value={categoria} onChange={(e) => setCategoria(e.target.value as CategoriaProducto)}>
             {Object.entries(CATEGORIA_SINGULAR).map(([k, v]) => (
               <option key={k} value={k}>

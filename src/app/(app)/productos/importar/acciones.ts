@@ -9,6 +9,7 @@ const esquemaFila = z.object({
   codigo: z.string().regex(/^[A-Z0-9-]{2,20}$/),
   nombre: z.string().trim().min(1),
   categoria: z.enum(["areta", "collar", "pulsera", "anillo", "otro"]),
+  clasificacion: z.string().regex(/^[A-Z]{1,6}$/).nullable().default(null),
   subcategoria: z.string().default(""),
   material: z.string().default(""),
   color: z.string().default(""),

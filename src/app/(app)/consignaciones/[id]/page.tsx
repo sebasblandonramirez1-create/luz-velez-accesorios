@@ -12,6 +12,7 @@ import { FormularioAbono } from "@/app/(app)/cuentas/formulario-abono";
 import { cargarRecibo, urlDeLaApp } from "@/lib/recibo-servidor";
 import { PanelRecibo } from "./panel-recibo";
 import { describirCambio, resumenModificacion, type CambioConsignacion } from "@/lib/modificaciones";
+import { conteoPorClasificacion } from "@/lib/clasificaciones";
 
 export default async function PaginaConsignacion({ params, searchParams }: PageProps<"/consignaciones/[id]">) {
   const { id } = await params;
@@ -24,7 +25,7 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
 
   const [{ data: c }, { data: lineas }, { data: liquidaciones }, { data: cuenta }, { data: ajustes }, recibo, urlApp, { data: modificaciones }] = await Promise.all([
     supabase.from("consignaciones").select("*, contactos(id, nombre, telefono)").eq("id", id).is("eliminado_en", null).maybeSingle(),
-    supabase.from("consignacion_lineas").select("*, productos(codigo, nombre, categoria, material)").eq("consignacion_id", id).order("creado_en"),
+    supabase.from("consignacion_lineas").select("*, productos(codigo, nombre, categoria, material, clasificacion)").eq("consignacion_id", id).order("creado_en"),
     supabase.from("liquidaciones").select("*, liquidacion_lineas(consignacion_linea_id, cantidad_vendida, cantidad_devuelta)").eq("consignacion_id", id).is("eliminado_en", null).order("fecha", { ascending: false }),
     supabase.from("cuentas_por_cobrar").select("*, abonos(id, fecha, valor, medio_pago, nota, eliminado_en)").eq("origen_tipo", "consignacion").eq("origen_id", id).maybeSingle(),
     supabase.from("ajustes").select("nombre_negocio").eq("id", 1).single(),
@@ -38,8 +39,8 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
 
   const contacto = c.contactos as unknown as { id: string; nombre: string; telefono: string };
   const filas = (lineas ?? []).map((l) => {
-    const p = l.productos as unknown as { codigo: string; nombre: string; categoria: CategoriaProducto; material: string };
-    return { ...l, codigo: p.codigo, nombre: p.nombre, categoria: p.categoria, material: p.material };
+    const p = l.productos as unknown as { codigo: string; nombre: string; categoria: CategoriaProducto; material: string; clasificacion: string | null };
+    return { ...l, codigo: p.codigo, nombre: p.nombre, categoria: p.categoria, material: p.material, clasificacion: p.clasificacion };
   });
   const hojas = hojasConsignacion(filas);
   const saldo = cuenta?.saldo ?? 0;
@@ -129,7 +130,10 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
                 <tr key={f.id} className="border-b border-borde">
                   <td className="py-2 pr-2">
                     <span className="block font-semibold">{f.nombre}</span>
-                    <span className="text-texto-suave">{f.codigo}</span>
+                    <span className="text-texto-suave">
+                      {f.clasificacion ? <strong className="mr-1 rounded bg-primario-claro px-1 text-primario-oscuro">{f.clasificacion}</strong> : <span className="mr-1 rounded bg-alerta-claro px-1 text-alerta">Sin clasificar</span>}
+                      {f.codigo}
+                    </span>
                   </td>
                   <td className="py-2 pr-2 text-right">{pesos(f.valor_unitario)}</td>
                   <td className="py-2 pr-2 text-right">{f.cantidad_entregada}</td>
@@ -141,6 +145,15 @@ export default async function PaginaConsignacion({ params, searchParams }: PageP
             </tbody>
           </table>
         </div>
+        {(() => {
+          const conteo = conteoPorClasificacion(filas.map((f) => ({ codigo: f.codigo, clasificacion: f.clasificacion, cantidad: f.cantidad_entregada })), recibo?.datos.clasificaciones ?? []);
+          return conteo.length > 0 ? (
+            <p className="mt-2 text-sm">
+              <span className="font-semibold">Entregado por clasificación: </span>
+              {conteo.map((k) => `${k.codigo ?? "Sin clasificar"} ${k.piezas}`).join(" · ")}
+            </p>
+          ) : null;
+        })()}
         {c.nota && <p className="mt-2 text-sm text-texto-suave">Nota: {c.nota}</p>}
       </Tarjeta>
 

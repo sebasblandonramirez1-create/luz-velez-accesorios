@@ -9,7 +9,7 @@ import { FormularioModificar, type LineaEditable } from "./formulario-modificar"
 
 export const metadata = { title: "Modificar entrega en consignación" };
 
-type ProductoDeLinea = { codigo: string; nombre: string; categoria: CategoriaProducto; material: string; color: string; stock_actual: number; precio_base: number; producto_fotos: { ruta_miniatura: string; principal: boolean }[] | null };
+type ProductoDeLinea = { codigo: string; nombre: string; categoria: CategoriaProducto; clasificacion: string | null; material: string; color: string; stock_actual: number; precio_base: number; producto_fotos: { ruta_miniatura: string; principal: boolean }[] | null };
 
 const miniaturaDe = (fotos: { ruta_miniatura: string; principal: boolean }[] | null | undefined) => fotos?.find((f) => f.principal)?.ruta_miniatura ?? fotos?.[0]?.ruta_miniatura ?? null;
 
@@ -26,12 +26,12 @@ export default async function PaginaModificarConsignacion({ params }: PageProps<
     supabase.from("consignaciones").select("id, numero, estado, fecha_entrega, fecha_limite, nota, contactos(nombre)").eq("id", id).is("eliminado_en", null).maybeSingle(),
     supabase
       .from("consignacion_lineas")
-      .select("producto_id, cantidad_entregada, cantidad_vendida, cantidad_devuelta, valor_unitario, creado_en, productos(codigo, nombre, categoria, material, color, stock_actual, precio_base, producto_fotos(ruta_miniatura, principal))")
+      .select("producto_id, cantidad_entregada, cantidad_vendida, cantidad_devuelta, valor_unitario, creado_en, productos(codigo, nombre, categoria, clasificacion, material, color, stock_actual, precio_base, producto_fotos(ruta_miniatura, principal))")
       .eq("consignacion_id", id)
       .order("creado_en"),
     supabase
       .from("productos")
-      .select("id, codigo, nombre, categoria, material, color, stock_actual, precio_base, producto_fotos(ruta_miniatura, principal)")
+      .select("id, codigo, nombre, categoria, clasificacion, material, color, stock_actual, precio_base, producto_fotos(ruta_miniatura, principal)")
       .is("eliminado_en", null)
       .eq("activo", true)
       .order("codigo"),
@@ -62,14 +62,14 @@ export default async function PaginaModificarConsignacion({ params }: PageProps<
   const entregado = new Map((lineas ?? []).map((l) => [l.producto_id, l.cantidad_entregada]));
   const catalogo = new Map<string, ProductoFiltrable>();
   for (const p of productos ?? []) {
-    catalogo.set(p.id, { id: p.id, codigo: p.codigo, nombre: p.nombre, categoria: p.categoria, material: p.material, color: p.color, precio_base: p.precio_base, stock_actual: p.stock_actual + (entregado.get(p.id) ?? 0), miniatura: miniaturaDe(p.producto_fotos) });
+    catalogo.set(p.id, { id: p.id, codigo: p.codigo, nombre: p.nombre, categoria: p.categoria, clasificacion: p.clasificacion, material: p.material, color: p.color, precio_base: p.precio_base, stock_actual: p.stock_actual + (entregado.get(p.id) ?? 0), miniatura: miniaturaDe(p.producto_fotos) });
   }
   const iniciales: LineaEditable[] = (lineas ?? []).map((l) => {
     const p = l.productos as unknown as ProductoDeLinea;
     const maximo = p.stock_actual + l.cantidad_entregada;
     // Un producto desactivado que ya está en la entrega también debe poder ajustarse.
     if (!catalogo.has(l.producto_id)) {
-      catalogo.set(l.producto_id, { id: l.producto_id, codigo: p.codigo, nombre: p.nombre, categoria: p.categoria, material: p.material, color: p.color, precio_base: p.precio_base, stock_actual: maximo, miniatura: miniaturaDe(p.producto_fotos) });
+      catalogo.set(l.producto_id, { id: l.producto_id, codigo: p.codigo, nombre: p.nombre, categoria: p.categoria, clasificacion: p.clasificacion, material: p.material, color: p.color, precio_base: p.precio_base, stock_actual: maximo, miniatura: miniaturaDe(p.producto_fotos) });
     }
     return {
       producto_id: l.producto_id,

@@ -5,6 +5,7 @@ import { MiniaturaProducto } from "@/components/miniatura";
 import { pesos } from "@/lib/formato";
 import { CATEGORIAS, type CategoriaProducto } from "@/lib/tipos";
 import { Filtros } from "./filtros";
+import { conteoPorClasificacion, FILTRO_SIN_CLASIFICAR } from "@/lib/clasificaciones";
 
 export const metadata = { title: "Productos" };
 
@@ -19,6 +20,7 @@ export default async function PaginaProductos({ searchParams }: PageProps<"/prod
   const p = await searchParams;
   const q = typeof p.q === "string" ? p.q.trim() : "";
   const categoria = typeof p.categoria === "string" ? p.categoria : "";
+  const clasificacion = typeof p.clasificacion === "string" ? p.clasificacion : "";
   const filtro = typeof p.filtro === "string" ? p.filtro : "";
   const orden = typeof p.orden === "string" && ORDENES[p.orden] ? p.orden : "codigo";
   const aviso = typeof p.aviso === "string" ? p.aviso : null;
@@ -27,19 +29,25 @@ export default async function PaginaProductos({ searchParams }: PageProps<"/prod
 
   let consulta = supabase
     .from("productos")
-    .select("id, codigo, nombre, categoria, material, color, precio_base, precio_publico, stock_actual, stock_minimo, activo, producto_fotos(ruta_miniatura, principal)")
+    .select("id, codigo, nombre, categoria, clasificacion, material, color, precio_base, precio_publico, stock_actual, stock_minimo, activo, producto_fotos(ruta_miniatura, principal)")
     .is("eliminado_en", null);
 
   if (filtro === "descontinuados") consulta = consulta.eq("activo", false);
   else if (filtro !== "todos") consulta = consulta.eq("activo", true);
   if (categoria && categoria in CATEGORIAS) consulta = consulta.eq("categoria", categoria as CategoriaProducto);
+  if (clasificacion === FILTRO_SIN_CLASIFICAR) consulta = consulta.is("clasificacion", null);
+  else if (clasificacion) consulta = consulta.eq("clasificacion", clasificacion);
   if (q) {
     const patron = `%${q.replace(/[%_]/g, "")}%`;
     consulta = consulta.or(`codigo.ilike.${patron},nombre.ilike.${patron},material.ilike.${patron},color.ilike.${patron},subcategoria.ilike.${patron}`);
   }
   consulta = consulta.order(ORDENES[orden].columna, { ascending: ORDENES[orden].ascendente }).limit(500);
 
-  const { data, error } = await consulta;
+  const [{ data, error }, { data: clasificaciones }, { count: sinClasificar }] = await Promise.all([
+    consulta,
+    supabase.from("clasificaciones_producto").select("codigo, nombre, activa").order("orden").order("codigo"),
+    supabase.from("productos").select("id", { count: "exact", head: true }).is("eliminado_en", null).eq("activo", true).is("clasificacion", null),
+  ]);
   let productos = data ?? [];
 
   if (filtro === "stock_bajo") productos = productos.filter((x) => x.stock_actual <= x.stock_minimo);
@@ -78,13 +86,22 @@ export default async function PaginaProductos({ searchParams }: PageProps<"/prod
         </Aviso>
       )}
 
-      <Filtros q={q} categoria={categoria} filtro={filtro} orden={orden} />
+      {(sinClasificar ?? 0) > 0 && clasificacion !== FILTRO_SIN_CLASIFICAR && (
+        <Aviso tipo="alerta" className="mb-4">
+          {sinClasificar} {sinClasificar === 1 ? "producto activo no tiene" : "productos activos no tienen"} clasificación (CP, CM, PL…).{" "}
+          <Link href={`/productos?clasificacion=${FILTRO_SIN_CLASIFICAR}`} className="font-semibold underline">
+            Ver cuáles
+          </Link>{" "}
+          y abre cada uno para elegirla.
+        </Aviso>
+      )}
+      <Filtros q={q} categoria={categoria} clasificacion={clasificacion} filtro={filtro} orden={orden} clasificaciones={clasificaciones ?? []} />
 
       {productos.length === 0 ? (
         <EstadoVacio
-          titulo={q || categoria || filtro ? "Nada coincide con la búsqueda" : "Todavía no hay productos"}
-          texto={q || categoria || filtro ? "Prueba con otra palabra o quita los filtros." : "Añade el primero con el botón de arriba o importa tu catálogo desde Excel."}
-          accion={!q && !categoria && !filtro ? <BotonEnlace href="/productos/nuevo">Añadir producto</BotonEnlace> : undefined}
+          titulo={q || categoria || clasificacion || filtro ? "Nada coincide con la búsqueda" : "Todavía no hay productos"}
+          texto={q || categoria || clasificacion || filtro ? "Prueba con otra palabra o quita los filtros." : "Añade el primero con el botón de arriba o importa tu catálogo desde Excel."}
+          accion={!q && !categoria && !clasificacion && !filtro ? <BotonEnlace href="/productos/nuevo">Añadir producto</BotonEnlace> : undefined}
         />
       ) : (
         <ul className="divide-y divide-borde overflow-hidden rounded-2xl border border-borde bg-superficie">
@@ -101,6 +118,7 @@ export default async function PaginaProductos({ searchParams }: PageProps<"/prod
                       {!prod.activo && <Etiqueta>Descontinuado</Etiqueta>}
                     </span>
                     <span className="block text-sm text-texto-suave">
+                      {prod.clasificacion ? <strong className="mr-1 rounded bg-primario-claro px-1 text-primario-oscuro">{prod.clasificacion}</strong> : <span className="mr-1 rounded bg-alerta-claro px-1 text-xs font-semibold text-alerta">Sin clasificar</span>}
                       {prod.codigo} · {CATEGORIAS[prod.categoria]}
                       {prod.material ? ` · ${prod.material}` : ""}
                       {prod.color ? ` · ${prod.color}` : ""}
@@ -118,6 +136,46 @@ export default async function PaginaProductos({ searchParams }: PageProps<"/prod
             );
           })}
         </ul>
+      )}
+
+      {productos.length > 0 && (
+        <section className="mt-4 rounded-2xl border border-borde bg-superficie p-4">
+          <h2 className="mb-2 font-bold">Conteo por clasificación</h2>
+          <p className="mb-2 text-sm text-texto-suave">De los {productos.length} productos de esta lista.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-borde text-left text-texto-suave">
+                  <th className="py-1 pr-2">Clas.</th>
+                  <th className="py-1 pr-2">Nombre</th>
+                  <th className="py-1 pr-2 text-right">Productos</th>
+                  <th className="py-1 text-right">Unidades en stock</th>
+                </tr>
+              </thead>
+              <tbody>
+                {conteoPorClasificacion(
+                  productos.map((x) => ({ codigo: x.codigo, clasificacion: x.clasificacion, cantidad: x.stock_actual })),
+                  clasificaciones ?? [],
+                ).map((k) => (
+                  <tr key={k.codigo ?? "sin"} className="border-b border-borde">
+                    <td className="py-1 pr-2 font-mono font-bold">{k.codigo ?? "—"}</td>
+                    <td className="py-1 pr-2">
+                      {k.codigo ? (
+                        k.nombre
+                      ) : (
+                        <Link href={`/productos?clasificacion=${FILTRO_SIN_CLASIFICAR}`} className="font-semibold text-alerta underline-offset-2 hover:underline">
+                          Sin clasificar
+                        </Link>
+                      )}
+                    </td>
+                    <td className="py-1 pr-2 text-right">{k.referencias}</td>
+                    <td className="py-1 text-right font-semibold">{k.piezas}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
     </div>
   );

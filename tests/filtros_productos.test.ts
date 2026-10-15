@@ -71,6 +71,14 @@ describe("facetas y contador", () => {
       { valor: "anillo", etiqueta: "Anillos", cantidad: 1 },
     ]);
     expect(f.materiales).toEqual(["Acero", "Hilo", "Perla de Mallorca"]);
+    expect(f.clasificaciones).toEqual([]);
+    expect(f.sinClasificar).toBe(5);
+    const conClase = productos.map((p, i) => ({ ...p, clasificacion: i % 2 ? "PL" : null }));
+    expect(facetas(conClase).clasificaciones).toEqual(["PL"]);
+    expect(facetas(conClase).sinClasificar).toBe(3);
+    expect(ids(filtrarProductos(conClase, { ...FILTROS_INICIALES, soloConStock: false, clasificacion: "PL" }))).toEqual(["SLA2", "SLAP026"]);
+    expect(ids(filtrarProductos(conClase, { ...FILTROS_INICIALES, soloConStock: false, clasificacion: "sin" }))).toEqual(["SLA013", "SLA030", "SLA100"]);
+    expect(ids(filtrarProductos(conClase, { ...FILTROS_INICIALES, soloConStock: false, texto: "pl" }))).toContain("SLA2");
     expect(f.colores).toEqual(["Azul", "Blanco", "Dorado"]);
   });
   it("cuenta los filtros puestos", () => {

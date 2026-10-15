@@ -5,6 +5,7 @@
  */
 import { fecha, fechaHora, pesos } from "./formato";
 import { enlaceWhatsApp, numeroDocumento } from "./ventas";
+import { conteoPorClasificacion, resumenClasificacionCorto } from "./clasificaciones";
 
 export interface PersonaRecibo {
   nombre: string;
@@ -18,6 +19,8 @@ export interface PersonaRecibo {
 export interface LineaRecibo {
   codigo: string;
   nombre: string;
+  /** Código de clasificación (CP, PL…) o null. */
+  clasificacion?: string | null;
   cantidad: number;
   valor_unitario: number;
 }
@@ -42,6 +45,8 @@ export interface DatosRecibo {
   vence?: string;
   /** Cuántas veces se modificó la entrega y cuándo fue la última. */
   modificaciones?: { cantidad: number; ultima: string | null } | null;
+  /** Lista de clasificaciones, para mostrar el nombre junto al código. */
+  clasificaciones?: { codigo: string; nombre: string }[];
 }
 
 export const PERSONA_VACIA: PersonaRecibo = { nombre: "", documento: "", telefono: "", direccion: "", ciudad: "", correo: "" };
@@ -124,10 +129,14 @@ export function textoRecibo(d: DatosRecibo, enlaceFirma?: string): string {
     `Recibo de entrega en consignación ${numeroDocumento("C", d.consignacion.numero)}`,
     `Entregado a ${d.contacto.nombre} el ${fecha(d.consignacion.fecha_entrega)}`,
     "",
-    ...d.lineas.map((l) => `• ${l.cantidad} × ${l.nombre} (${l.codigo}) a $${pesos(l.valor_unitario)} = $${pesos(l.cantidad * l.valor_unitario)}`),
+    ...d.lineas.map((l) => `• ${l.cantidad} × ${l.nombre} (${l.clasificacion ? `${l.clasificacion} · ` : ""}${l.codigo}) a $${pesos(l.valor_unitario)} = $${pesos(l.cantidad * l.valor_unitario)}`),
     "",
     `*Total entregado: ${t.piezas} ${t.piezas === 1 ? "pieza" : "piezas"} por $${pesos(t.total)}*`,
   ];
+  const porClasificacion = conteoPorClasificacion(d.lineas, d.clasificaciones ?? []);
+  if (porClasificacion.length > 1 || (porClasificacion.length === 1 && porClasificacion[0].codigo)) {
+    partes.push(`Por clasificación: ${resumenClasificacionCorto(porClasificacion)}`);
+  }
   if (d.consignacion.fecha_limite) partes.push(`Fecha límite para liquidar: ${fecha(d.consignacion.fecha_limite)}`);
   if (d.consignacion.nota) partes.push(`Nota: ${d.consignacion.nota}`);
   if (d.firma) {

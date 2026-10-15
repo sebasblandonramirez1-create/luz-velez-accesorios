@@ -11,7 +11,7 @@ export default async function PaginaNuevaConsignacion({ searchParams }: PageProp
   const [{ data: productos }, { data: contactos }, { data: ajustes }] = await Promise.all([
     supabase
       .from("productos")
-      .select("id, codigo, nombre, categoria, material, color, stock_actual, precio_base, producto_fotos(ruta_miniatura, principal)")
+      .select("id, codigo, nombre, categoria, clasificacion, material, color, stock_actual, precio_base, producto_fotos(ruta_miniatura, principal)")
       .is("eliminado_en", null)
       .eq("activo", true)
       .order("codigo"),
@@ -27,6 +27,7 @@ export default async function PaginaNuevaConsignacion({ searchParams }: PageProp
           codigo: x.codigo,
           nombre: x.nombre,
           categoria: x.categoria,
+          clasificacion: x.clasificacion,
           material: x.material,
           color: x.color,
           stock_actual: x.stock_actual,

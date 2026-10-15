@@ -11,7 +11,7 @@ export default async function ComprobanteVenta({ params }: PageProps<"/imprimir/
   const supabase = await clienteServidor();
   const [{ data: venta }, { data: lineas }, { data: cuenta }, { data: ajustes }] = await Promise.all([
     supabase.from("ventas").select("*, contactos(nombre, telefono)").eq("id", id).is("eliminado_en", null).maybeSingle(),
-    supabase.from("venta_lineas").select("*, productos(codigo, nombre)").eq("venta_id", id).order("creado_en"),
+    supabase.from("venta_lineas").select("*, productos(codigo, nombre, clasificacion)").eq("venta_id", id).order("creado_en"),
     supabase.from("cuentas_por_cobrar").select("saldo, abonado").eq("origen_tipo", "venta").eq("origen_id", id).maybeSingle(),
     supabase.from("ajustes").select("nombre_negocio, telefono_negocio").eq("id", 1).single(),
   ]);
@@ -51,7 +51,7 @@ export default async function ComprobanteVenta({ params }: PageProps<"/imprimir/
           </thead>
           <tbody>
             {(lineas ?? []).map((l) => {
-              const p = l.productos as unknown as { codigo: string; nombre: string };
+              const p = l.productos as unknown as { codigo: string; nombre: string; clasificacion: string | null };
               return (
                 <tr key={l.id} className="align-top">
                   <td className="py-1 pr-2">{l.cantidad}</td>
@@ -59,6 +59,7 @@ export default async function ComprobanteVenta({ params }: PageProps<"/imprimir/
                     {p.nombre}
                     <br />
                     <span className="text-xs text-gray-600">
+                      {p.clasificacion ? `${p.clasificacion} · ` : ""}
                       {p.codigo} · {pesos(l.precio_unitario)} c/u{l.descuento ? ` · desc. ${pesos(l.descuento)}` : ""}
                     </span>
                   </td>

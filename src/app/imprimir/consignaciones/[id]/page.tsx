@@ -8,6 +8,7 @@ import { hojasConsignacion, numeroDocumento, type FilaHoja } from "@/lib/ventas"
 import { cargarRecibo } from "@/lib/recibo-servidor";
 import { ReciboConsignacion } from "@/components/recibo-consignacion";
 import { BotonesPdfRecibo } from "@/components/compartir-recibo";
+import { conteoPorClasificacion, type Clasificacion } from "@/lib/clasificaciones";
 
 interface Encabezamiento {
   negocio: string;
@@ -17,12 +18,25 @@ interface Encabezamiento {
   hoy: string;
 }
 
-function Tabla({ filas, total, etiquetaTotal, conMiles }: { filas: FilaHoja[]; total: number; etiquetaTotal: string; conMiles: boolean }) {
+function ConteoClasificacion({ filas, lista }: { filas: FilaHoja[]; lista: Clasificacion[] }) {
+  const conteo = conteoPorClasificacion(filas, lista);
+  if (conteo.length === 0) return null;
+  return (
+    <p className="mt-1 text-xs">
+      <span className="font-bold uppercase">Por clasificación: </span>
+      {conteo.map((c) => `${c.codigo ?? "Sin clasificar"} ${c.piezas} ${c.piezas === 1 ? "pieza" : "piezas"}`).join(" · ")}
+    </p>
+  );
+}
+
+function Tabla({ filas, total, etiquetaTotal, conMiles, lista }: { filas: FilaHoja[]; total: number; etiquetaTotal: string; conMiles: boolean; lista: Clasificacion[] }) {
   const codigoHoja = (f: FilaHoja) => (conMiles ? `${f.codigo} ${enMiles(f.valor_unitario)}` : f.codigo);
   return (
+    <>
     <table className="w-full border-collapse text-sm">
       <thead>
         <tr className="border-b-2 border-black text-left">
+          <th className="py-1 pr-2">Clas.</th>
           <th className="py-1 pr-2">Código</th>
           <th className="py-1 pr-2">Descripción</th>
           <th className="py-1 pr-2 text-right">Cant.</th>
@@ -33,6 +47,7 @@ function Tabla({ filas, total, etiquetaTotal, conMiles }: { filas: FilaHoja[]; t
       <tbody>
         {filas.map((f) => (
           <tr key={f.codigo} className="border-b border-gray-300">
+            <td className="py-1 pr-2 font-mono font-bold">{f.clasificacion ?? "—"}</td>
             <td className="py-1 pr-2 font-mono">{codigoHoja(f)}</td>
             <td className="py-1 pr-2 uppercase">{f.descripcion}</td>
             <td className="py-1 pr-2 text-right">{f.cantidad}</td>
@@ -42,7 +57,7 @@ function Tabla({ filas, total, etiquetaTotal, conMiles }: { filas: FilaHoja[]; t
         ))}
         {filas.length === 0 && (
           <tr>
-            <td colSpan={5} className="py-2 text-center text-gray-500">
+            <td colSpan={6} className="py-2 text-center text-gray-500">
               —
             </td>
           </tr>
@@ -50,13 +65,15 @@ function Tabla({ filas, total, etiquetaTotal, conMiles }: { filas: FilaHoja[]; t
       </tbody>
       <tfoot>
         <tr className="border-t-2 border-black font-bold">
-          <td colSpan={4} className="py-1 pr-2 text-right uppercase">
+          <td colSpan={5} className="py-1 pr-2 text-right uppercase">
             {etiquetaTotal}
           </td>
           <td className="py-1 text-right">{pesos(total)}</td>
         </tr>
       </tfoot>
     </table>
+    <ConteoClasificacion filas={filas} lista={lista} />
+    </>
   );
 }
 
@@ -87,18 +104,20 @@ export default async function HojasConsignacion({ params, searchParams }: PagePr
   const sp = await searchParams;
   const solo = typeof sp.hoja === "string" ? sp.hoja : "";
   const supabase = await clienteServidor();
-  const [{ data: c }, { data: lineas }, { data: cuenta }, { data: ajustes }, recibo] = await Promise.all([
+  const [{ data: c }, { data: lineas }, { data: cuenta }, { data: ajustes }, recibo, { data: clasificaciones }] = await Promise.all([
     supabase.from("consignaciones").select("*, contactos(nombre, telefono)").eq("id", id).is("eliminado_en", null).maybeSingle(),
-    supabase.from("consignacion_lineas").select("*, productos(codigo, nombre, categoria, material, precio_base)").eq("consignacion_id", id).order("creado_en"),
+    supabase.from("consignacion_lineas").select("*, productos(codigo, nombre, categoria, material, precio_base, clasificacion)").eq("consignacion_id", id).order("creado_en"),
     supabase.from("cuentas_por_cobrar").select("saldo, abonado, valor_total").eq("origen_tipo", "consignacion").eq("origen_id", id).maybeSingle(),
     supabase.from("ajustes").select("nombre_negocio, etiqueta_mostrar_precio_miles").eq("id", 1).single(),
     cargarRecibo(supabase, id),
+    supabase.from("clasificaciones_producto").select("codigo, nombre").order("orden").order("codigo"),
   ]);
   if (!c) notFound();
+  const lista: Clasificacion[] = clasificaciones ?? [];
   const contacto = c.contactos as unknown as { nombre: string; telefono: string };
   const filas = (lineas ?? []).map((l) => {
-    const p = l.productos as unknown as { codigo: string; nombre: string; categoria: CategoriaProducto; material: string; precio_base: number };
-    return { ...l, codigo: p.codigo, nombre: p.nombre, categoria: p.categoria, material: p.material };
+    const p = l.productos as unknown as { codigo: string; nombre: string; categoria: CategoriaProducto; material: string; precio_base: number; clasificacion: string | null };
+    return { ...l, codigo: p.codigo, nombre: p.nombre, categoria: p.categoria, material: p.material, clasificacion: p.clasificacion };
   });
   const h = hojasConsignacion(filas);
   const conMiles = ajustes?.etiqueta_mostrar_precio_miles ?? true;
@@ -137,7 +156,7 @@ export default async function HojasConsignacion({ params, searchParams }: PagePr
       )}
 
       <Hoja titulo="Ventas" clave="ventas" solo={solo} enc={enc}>
-        <Tabla filas={h.ventas.filas} total={h.ventas.total} etiquetaTotal={`Total vendido a ${hoy}`} conMiles={conMiles} />
+        <Tabla filas={h.ventas.filas} total={h.ventas.total} etiquetaTotal={`Total vendido a ${hoy}`} conMiles={conMiles} lista={lista} />
         {cuenta && (
           <p className="mt-3 text-sm">
             Abonado: {pesos(cuenta.abonado)} · <strong>Saldo por pagar: {pesos(cuenta.saldo)}</strong>
@@ -149,7 +168,7 @@ export default async function HojasConsignacion({ params, searchParams }: PagePr
         {h.devoluciones.bloques.map((b) => (
           <div key={b.titulo} className="mb-4">
             <h3 className="mb-1 font-bold uppercase">{b.titulo}</h3>
-            <Tabla filas={b.filas} total={b.total} etiquetaTotal={`Total ${b.titulo}`} conMiles={conMiles} />
+            <Tabla filas={b.filas} total={b.total} etiquetaTotal={`Total ${b.titulo}`} conMiles={conMiles} lista={lista} />
           </div>
         ))}
         {h.devoluciones.bloques.length === 0 && <p className="text-gray-500">Sin devoluciones.</p>}
@@ -157,7 +176,7 @@ export default async function HojasConsignacion({ params, searchParams }: PagePr
       </Hoja>
 
       <Hoja titulo="Pendiente de pago" clave="pendiente" solo={solo} enc={enc}>
-        <Tabla filas={h.pendientes.filas} total={h.pendientes.total} etiquetaTotal="Total pendiente" conMiles={conMiles} />
+        <Tabla filas={h.pendientes.filas} total={h.pendientes.total} etiquetaTotal="Total pendiente" conMiles={conMiles} lista={lista} />
         <p className="mt-2 text-sm text-gray-600">Piezas entregadas que aún no se han vendido ni devuelto.</p>
       </Hoja>
     </div>

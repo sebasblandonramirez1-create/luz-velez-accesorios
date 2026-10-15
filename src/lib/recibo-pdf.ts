@@ -11,6 +11,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf
 import { fecha, fechaHora, pesos } from "./formato";
 import { CAMPOS_RECEPTOR, codigoVerificacion, leyendaModificaciones, parrafosCondiciones, quienRecibe, totalesRecibo, type DatosRecibo } from "./recibo";
 import { numeroDocumento } from "./ventas";
+import { conteoPorClasificacion } from "./clasificaciones";
 
 const ANCHO = 612;
 const ALTO = 792;
@@ -136,8 +137,9 @@ export async function crearPdfRecibo(d: DatosRecibo): Promise<Uint8Array> {
 
   // --- Piezas ---------------------------------------------------------------
   titulo("Mercancía entregada");
-  const col = { codigo: MARGEN, descripcion: MARGEN + 78, cantidad: MARGEN + util - 190, valor: MARGEN + util - 95, total: ANCHO - MARGEN };
+  const col = { clas: MARGEN, codigo: MARGEN + 34, descripcion: MARGEN + 110, cantidad: MARGEN + util - 190, valor: MARGEN + util - 95, total: ANCHO - MARGEN };
   const cabecera = () => {
+    escribir("Clas.", col.clas, y, 8.5, negrita);
     escribir("Código", col.codigo, y, 8.5, negrita);
     escribir("Descripción", col.descripcion, y, 8.5, negrita);
     derecha("Cant.", col.cantidad, y, 8.5, negrita);
@@ -156,6 +158,7 @@ export async function crearPdfRecibo(d: DatosRecibo): Promise<Uint8Array> {
       asegurar(alto + 30);
       cabecera();
     }
+    escribir(l.clasificacion ?? "-", col.clas, y, 9, negrita);
     escribir(l.codigo, col.codigo, y, 9, negrita);
     renglones.forEach((r, i) => escribir(r, col.descripcion, y - i * 11, 9));
     derecha(String(l.cantidad), col.cantidad, y, 9.5, negrita);
@@ -172,6 +175,19 @@ export async function crearPdfRecibo(d: DatosRecibo): Promise<Uint8Array> {
   escribir(`${t.referencias} ${t.referencias === 1 ? "referencia" : "referencias"} · ${t.piezas} ${t.piezas === 1 ? "pieza" : "piezas"}`, MARGEN, y, 9.5);
   derecha(`TOTAL ENTREGADO   $ ${pesos(t.total)}`, ANCHO - MARGEN, y, 11.5, negrita);
   y -= 18;
+  const porClasificacion = conteoPorClasificacion(d.lineas, d.clasificaciones ?? []);
+  if (porClasificacion.length > 0) {
+    asegurar(14 + porClasificacion.length * 11);
+    escribir("CONTEO POR CLASIFICACIÓN", MARGEN, y, 8, negrita, GRIS);
+    y -= 11;
+    for (const c of porClasificacion) {
+      escribir(c.codigo ?? "-", MARGEN, y, 8.5, negrita);
+      escribir(c.nombre, MARGEN + 34, y, 8.5);
+      derecha(`${c.piezas} ${c.piezas === 1 ? "pieza" : "piezas"} · ${c.referencias} ${c.referencias === 1 ? "referencia" : "referencias"}`, MARGEN + 300, y, 8.5);
+      y -= 11;
+    }
+    y -= 6;
+  }
   if (d.consignacion.nota) {
     for (const r of partirEnRenglones(textoPdf(`Observaciones: ${d.consignacion.nota}`), (x) => normal.widthOfTextAtSize(x, 9), util)) {
       asegurar(12);

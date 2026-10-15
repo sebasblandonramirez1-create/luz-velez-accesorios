@@ -106,6 +106,7 @@ export function enlaceWhatsApp(telefono: string | null | undefined, texto: strin
 export interface LineaConsignacionHoja {
   codigo: string;
   nombre: string;
+  clasificacion?: string | null;
   categoria: CategoriaProducto;
   material: string;
   valor_unitario: number;
@@ -117,6 +118,7 @@ export interface LineaConsignacionHoja {
 
 export interface FilaHoja {
   codigo: string;
+  clasificacion?: string | null;
   descripcion: string;
   cantidad: number;
   valor_unitario: number;
@@ -130,7 +132,7 @@ export interface BloqueHoja {
 }
 
 function fila(l: LineaConsignacionHoja, cantidad: number): FilaHoja {
-  return { codigo: l.codigo, descripcion: l.nombre, cantidad, valor_unitario: l.valor_unitario, total: cantidad * l.valor_unitario };
+  return { codigo: l.codigo, clasificacion: l.clasificacion ?? null, descripcion: l.nombre, cantidad, valor_unitario: l.valor_unitario, total: cantidad * l.valor_unitario };
 }
 
 /** Nombre del bloque en la hoja de DEVOLUCIONES: «Aretas perla de Mallorca», «Productos varios»… */

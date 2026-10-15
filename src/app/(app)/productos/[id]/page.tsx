@@ -6,6 +6,7 @@ import { BotonConfirmar } from "@/components/confirmar";
 import { enMiles, fecha, fechaHora, pesos } from "@/lib/formato";
 import { nombreMovimiento, signoMovimiento } from "@/lib/inventario";
 import { CATEGORIA_SINGULAR } from "@/lib/tipos";
+import { etiquetaClasificacion } from "@/lib/clasificaciones";
 import { urlFoto } from "@/lib/urls";
 import { borrarFoto, enviarProductoAPapelera, marcarFotoPrincipal } from "../acciones";
 
@@ -16,12 +17,13 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
   const sesion = (await sesionActual())!;
   const supabase = await clienteServidor();
 
-  const [{ data: producto }, { data: fotos }, { data: movimientos }, { data: proveedor }, { data: ajustes }] = await Promise.all([
+  const [{ data: producto }, { data: fotos }, { data: movimientos }, { data: proveedor }, { data: ajustes }, { data: clasificaciones }] = await Promise.all([
     supabase.from("productos").select("*").eq("id", id).is("eliminado_en", null).maybeSingle(),
     supabase.from("producto_fotos").select("*").eq("producto_id", id).order("principal", { ascending: false }).order("orden"),
     supabase.from("movimientos_inventario").select("*").eq("producto_id", id).is("eliminado_en", null).order("fecha", { ascending: false }).limit(50),
     supabase.from("productos").select("proveedor_id, contactos:proveedor_id(nombre)").eq("id", id).maybeSingle(),
     supabase.from("ajustes").select("etiqueta_mostrar_precio_miles").eq("id", 1).single(),
+    supabase.from("clasificaciones_producto").select("codigo, nombre").order("orden"),
   ]);
   if (!producto) notFound();
 
@@ -34,7 +36,7 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
     <div className="space-y-4">
       <Encabezado
         titulo={producto.nombre}
-        subtitulo={`${producto.codigo}${ajustes?.etiqueta_mostrar_precio_miles ? ` ${enMiles(producto.precio_base)}` : ""} · ${CATEGORIA_SINGULAR[producto.categoria]}`}
+        subtitulo={`${producto.clasificacion ? `${producto.clasificacion} · ` : ""}${producto.codigo}${ajustes?.etiqueta_mostrar_precio_miles ? ` ${enMiles(producto.precio_base)}` : ""} · ${CATEGORIA_SINGULAR[producto.categoria]}`}
         volver="/productos"
         acciones={
           <>
@@ -121,6 +123,16 @@ export default async function PaginaProducto({ params, searchParams }: PageProps
 
           <Tarjeta titulo="Detalles">
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-texto-suave">Clasificación</dt>
+              <dd>
+                {producto.clasificacion ? (
+                  etiquetaClasificacion(producto.clasificacion, clasificaciones ?? [])
+                ) : (
+                  <Link href={`/productos/${producto.id}/editar`} className="font-semibold text-alerta underline-offset-2 hover:underline">
+                    Sin clasificar: elegir una
+                  </Link>
+                )}
+              </dd>
               <dt className="text-texto-suave">Material</dt>
               <dd>{producto.material || "—"}</dd>
               <dt className="text-texto-suave">Color</dt>

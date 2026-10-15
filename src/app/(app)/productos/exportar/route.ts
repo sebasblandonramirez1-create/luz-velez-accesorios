@@ -11,8 +11,9 @@ export async function GET() {
   const { data } = await supabase.from("productos").select("*").is("eliminado_en", null).order("codigo");
   const esPropietaria = sesion.perfil.rol === "propietaria";
   const filas = [
-    ["Código", "Descripción", "Categoría", "Subcategoría", "Material", "Color", "Precio base", "Precio público", "Precio mayorista", ...(esPropietaria ? ["Costo compra"] : []), "Stock", "Stock mínimo", "Estado", "Catálogo público", "Creado", "Notas"],
+    ["Clasificación", "Código", "Descripción", "Categoría", "Subcategoría", "Material", "Color", "Precio base", "Precio público", "Precio mayorista", ...(esPropietaria ? ["Costo compra"] : []), "Stock", "Stock mínimo", "Estado", "Catálogo público", "Creado", "Notas"],
     ...(data ?? []).map((p) => [
+      p.clasificacion ?? "",
       p.codigo,
       p.nombre,
       CATEGORIA_SINGULAR[p.categoria],
@@ -31,7 +32,7 @@ export async function GET() {
       p.notas,
     ]),
   ];
-  const bytes = crearXlsx([{ nombre: "Productos", filas, anchos: [12, 40, 12, 16, 14, 12, 13, 14, 14, ...(esPropietaria ? [13] : []), 8, 12, 14, 14, 12, 30] }]);
+  const bytes = crearXlsx([{ nombre: "Productos", filas, anchos: [10, 12, 40, 12, 16, 14, 12, 13, 14, 14, ...(esPropietaria ? [13] : []), 8, 12, 14, 14, 12, 30] }]);
   return new Response(new Uint8Array(bytes), {
     headers: { "Content-Type": TIPO_XLSX, "Content-Disposition": `attachment; filename="productos-${hoyIso()}.xlsx"` },
   });

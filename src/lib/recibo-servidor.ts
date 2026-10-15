@@ -9,12 +9,13 @@ import type { DatosRecibo, PersonaRecibo } from "./recibo";
  * vencimiento y, si ya firmaron, la evidencia.
  */
 export async function cargarRecibo(supabase: SupabaseClient<Database>, id: string): Promise<{ datos: DatosRecibo; recibo: ConsignacionRecibo | null } | null> {
-  const [{ data: c }, { data: lineas }, { data: ajustes }, { data: recibo }, { data: modificaciones }] = await Promise.all([
+  const [{ data: c }, { data: lineas }, { data: ajustes }, { data: recibo }, { data: modificaciones }, { data: clasificaciones }] = await Promise.all([
     supabase.from("consignaciones").select("id, numero, fecha_entrega, fecha_limite, nota, total_entregado, contactos(nombre, telefono, documento, direccion, ciudad, correo)").eq("id", id).is("eliminado_en", null).maybeSingle(),
-    supabase.from("consignacion_lineas").select("cantidad_entregada, valor_unitario, creado_en, productos(codigo, nombre)").eq("consignacion_id", id).order("creado_en"),
+    supabase.from("consignacion_lineas").select("cantidad_entregada, valor_unitario, creado_en, productos(codigo, nombre, clasificacion)").eq("consignacion_id", id).order("creado_en"),
     supabase.from("ajustes").select("nombre_negocio, telefono_negocio, documento_negocio, direccion_negocio, ciudad_negocio, correo_negocio, consignacion_condiciones").eq("id", 1).single(),
     supabase.from("consignacion_recibos").select("*").eq("consignacion_id", id).maybeSingle(),
     supabase.from("consignacion_modificaciones").select("fecha").eq("consignacion_id", id).order("fecha", { ascending: false }),
+    supabase.from("clasificaciones_producto").select("codigo, nombre").order("orden").order("codigo"),
   ]);
   if (!c) return null;
   const contacto = c.contactos as unknown as PersonaRecibo;
@@ -32,8 +33,8 @@ export async function cargarRecibo(supabase: SupabaseClient<Database>, id: strin
     consignacion: { id: c.id, numero: c.numero, fecha_entrega: c.fecha_entrega, fecha_limite: c.fecha_limite, nota: c.nota, total_entregado: c.total_entregado },
     contacto,
     lineas: (lineas ?? []).map((l) => {
-      const p = l.productos as unknown as { codigo: string; nombre: string };
-      return { codigo: p.codigo, nombre: p.nombre, cantidad: l.cantidad_entregada, valor_unitario: l.valor_unitario };
+      const p = l.productos as unknown as { codigo: string; nombre: string; clasificacion: string | null };
+      return { codigo: p.codigo, nombre: p.nombre, clasificacion: p.clasificacion, cantidad: l.cantidad_entregada, valor_unitario: l.valor_unitario };
     }),
     receptor: firmado
       ? {
@@ -49,6 +50,7 @@ export async function cargarRecibo(supabase: SupabaseClient<Database>, id: strin
     estado: firmado ? "firmado" : recibo ? (new Date(recibo.token_vence) < new Date() ? "vencido" : "pendiente") : undefined,
     vence: recibo?.token_vence,
     modificaciones: { cantidad: modificaciones?.length ?? 0, ultima: modificaciones?.[0]?.fecha ?? null },
+    clasificaciones: clasificaciones ?? [],
   };
   return { datos, recibo: recibo ?? null };
 }

@@ -12,7 +12,7 @@ export default async function Tablero() {
 
   const hoy = hoyIso();
   const inicioMes = `${hoy.slice(0, 7)}-01T00:00:00-05:00`;
-  const [{ data: ajustes }, { data: stockBajo }, { count: sinMovimiento }, { data: ultimosMovimientos }, { count: totalProductos }, { data: ventasMes }, { data: saldos }] =
+  const [{ data: ajustes }, { data: stockBajo }, { count: sinMovimiento }, { data: ultimosMovimientos }, { count: totalProductos }, { data: ventasMes }, { data: saldos }, { count: sinClasificar }] =
     await Promise.all([
       supabase.from("ajustes").select("*").eq("id", 1).single(),
       supabase
@@ -32,6 +32,7 @@ export default async function Tablero() {
       supabase.from("productos").select("id", { count: "exact", head: true }).is("eliminado_en", null),
       supabase.from("ventas").select("id, numero, fecha, total, contactos(nombre)").is("eliminado_en", null).gte("fecha", inicioMes).order("fecha", { ascending: false }),
       supabase.from("saldos_por_contacto").select("saldo"),
+      supabase.from("productos").select("id", { count: "exact", head: true }).is("eliminado_en", null).eq("activo", true).is("clasificacion", null),
     ]);
   const ventasHoy = (ventasMes ?? []).filter((v) => new Date(v.fecha).toLocaleDateString("en-CA", { timeZone: "America/Bogota" }) === hoy);
   const totalHoy = ventasHoy.reduce((s, v) => s + v.total, 0);
@@ -55,6 +56,15 @@ export default async function Tablero() {
             ? "Todavía no hay ninguna copia de seguridad automática."
             : `La última copia de seguridad tiene más de ${Math.floor(horasRespaldo)} horas.`}{" "}
           Revisa en <Link href="/ajustes/respaldos" className="font-semibold underline">Ajustes → Copias de seguridad</Link>.
+        </Aviso>
+      )}
+
+      {(sinClasificar ?? 0) > 0 && (
+        <Aviso tipo="alerta">
+          {sinClasificar} {sinClasificar === 1 ? "producto no tiene" : "productos no tienen"} clasificación (CP, CM, PL…). Sin ella no se cuentan por clasificación en recibos y reportes.{" "}
+          <Link href="/productos?clasificacion=sin" className="font-semibold underline">
+            Clasificarlos
+          </Link>
         </Aviso>
       )}
 

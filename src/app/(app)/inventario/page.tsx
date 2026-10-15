@@ -5,6 +5,7 @@ import { BotonConfirmar } from "@/components/confirmar";
 import { fechaHora, pesos } from "@/lib/formato";
 import { TIPOS_MOVIMIENTO, nombreMovimiento, signoMovimiento, type TipoMovimiento } from "@/lib/inventario";
 import { enviarMovimientoAPapelera } from "./acciones";
+import { conteoPorClasificacion } from "@/lib/clasificaciones";
 
 export const metadata = { title: "Inventario" };
 
@@ -27,7 +28,11 @@ export default async function PaginaInventario({ searchParams }: PageProps<"/inv
   if (tipo) consulta = consulta.eq("tipo", tipo);
   const { data: movimientos } = await consulta;
 
-  const { data: resumen } = await supabase.from("productos").select("stock_actual, precio_base, precio_publico").is("eliminado_en", null).eq("activo", true);
+  const [{ data: resumen }, { data: clasificaciones }] = await Promise.all([
+    supabase.from("productos").select("codigo, clasificacion, stock_actual, precio_base, precio_publico").is("eliminado_en", null).eq("activo", true),
+    supabase.from("clasificaciones_producto").select("codigo, nombre").order("orden"),
+  ]);
+  const porClasificacion = conteoPorClasificacion((resumen ?? []).map((x) => ({ codigo: x.codigo, clasificacion: x.clasificacion, cantidad: x.stock_actual, valor_unitario: x.precio_base })), clasificaciones ?? []);
   const unidades = (resumen ?? []).reduce((s, x) => s + x.stock_actual, 0);
   const valorBase = (resumen ?? []).reduce((s, x) => s + x.stock_actual * x.precio_base, 0);
   const valorPublico = (resumen ?? []).reduce((s, x) => s + x.stock_actual * x.precio_publico, 0);
@@ -71,6 +76,44 @@ export default async function PaginaInventario({ searchParams }: PageProps<"/inv
           <p className="text-xl font-bold">{pesos(valorPublico)}</p>
         </div>
       </div>
+
+      {porClasificacion.length > 0 && (
+        <section className="mb-4 rounded-2xl border border-borde bg-superficie p-4">
+          <h2 className="mb-2 font-bold">Existencias por clasificación</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-borde text-left text-texto-suave">
+                  <th className="py-1 pr-2">Clas.</th>
+                  <th className="py-1 pr-2">Nombre</th>
+                  <th className="py-1 pr-2 text-right">Productos</th>
+                  <th className="py-1 pr-2 text-right">Unidades</th>
+                  <th className="py-1 text-right">Valor base</th>
+                </tr>
+              </thead>
+              <tbody>
+                {porClasificacion.map((k) => (
+                  <tr key={k.codigo ?? "sin"} className="border-b border-borde">
+                    <td className="py-1 pr-2 font-mono font-bold">{k.codigo ?? "—"}</td>
+                    <td className="py-1 pr-2">
+                      {k.codigo ? (
+                        k.nombre
+                      ) : (
+                        <Link href="/productos?clasificacion=sin" className="font-semibold text-alerta underline-offset-2 hover:underline">
+                          Sin clasificar
+                        </Link>
+                      )}
+                    </td>
+                    <td className="py-1 pr-2 text-right">{k.referencias}</td>
+                    <td className="py-1 pr-2 text-right font-semibold">{k.piezas}</td>
+                    <td className="py-1 text-right">{pesos(k.valor)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <form className="mb-4 flex gap-2" method="get">
         {productoId && <input type="hidden" name="producto" value={productoId} />}

@@ -439,6 +439,34 @@ Añadido el 01/10/2026 (migración 10).
   título ejecutivo), conviene revisar el texto de las condiciones con una abogada o un
   abogado.
 
+## Clasificación de productos (CP, CM, CCH, PL, PLM…)
+
+Añadido el 15/10/2026 (migración 12).
+
+- **Qué es.** Cada producto lleva una clasificación por código corto, distinta de la
+  categoría (aretas, collares…) que define el prefijo del código y los bloques de las
+  hojas. La lista nace con las cinco de la propietaria: **CP** collar de piedras, **CM**
+  collar medio, **CCH** collar choker, **PL** pulsera y **PLM** pulsera media, y se
+  administra en **Ajustes → Clasificaciones** (crear, renombrar, ordenar, activar o
+  desactivar, borrar las que no se usan). Cambiar un código arrastra a sus productos.
+- **Dónde se ve.** Junto al código y la descripción en el recibo de entrega (impreso,
+  PDF y página de firma), en las hojas VENTAS, DEVOLUCIONES y PENDIENTE DE PAGO, en el
+  comprobante de venta, en el detalle de la consignación, en el buscador de piezas, en la
+  lista de productos, en la exportación a Excel y en la importación desde CSV (columna
+  «Clasificación»).
+- **Conteo por clasificación.** Al final del recibo, de cada hoja, de la lista de
+  productos y del inventario: piezas o unidades y referencias por clasificación, con
+  «Sin clasificar» al final.
+- **Productos sin clasificar.** El tablero y la lista de productos avisan cuántos hay,
+  con enlace al filtro `/productos?clasificacion=sin`; en la lista cada uno lleva la
+  marca «Sin clasificar» y el detalle enlaza a editarlo. La clasificación no es
+  obligatoria para no bloquear el registro de aretas, anillos u otros tipos que aún no
+  tengan código.
+- **Tablas.** `clasificaciones_producto` (código `^[A-Z]{1,6}$`, nombre, orden, activa)
+  y `productos.clasificacion` con llave foránea `on update cascade`. Solo la propietaria
+  la modifica (RLS); `anon` no la lee. Entra en las copias de seguridad.
+- **Pruebas.** `tests/db/clasificaciones.test.ts` y `tests/clasificaciones.test.ts`.
+
 ## Modificar una consignación sin liquidarla (con historial)
 
 Añadido el 01/10/2026 (migración 11).

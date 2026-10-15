@@ -8,9 +8,10 @@ export default async function PaginaNuevoProducto({ searchParams }: PageProps<"/
   const p = await searchParams;
   const creado = typeof p.creado === "string" ? p.creado : null;
   const supabase = await clienteServidor();
-  const [{ data: ajustes }, { data: proveedores }] = await Promise.all([
+  const [{ data: ajustes }, { data: proveedores }, { data: clasificaciones }] = await Promise.all([
     supabase.from("ajustes").select("*").eq("id", 1).single(),
     supabase.from("contactos").select("id, nombre").eq("tipo", "proveedor").is("eliminado_en", null).order("nombre"),
+    supabase.from("clasificaciones_producto").select("codigo, nombre, activa").order("orden").order("codigo"),
   ]);
   if (!ajustes) throw new Error("No se pudieron cargar los ajustes.");
 
@@ -22,7 +23,7 @@ export default async function PaginaNuevoProducto({ searchParams }: PageProps<"/
           Producto {creado} guardado. Puedes añadir el siguiente.
         </Aviso>
       )}
-      <FormularioProducto key={creado ?? "nuevo"} ajustes={ajustes} proveedores={proveedores ?? []} />
+      <FormularioProducto key={creado ?? "nuevo"} ajustes={ajustes} proveedores={proveedores ?? []} clasificaciones={clasificaciones ?? []} />
     </div>
   );
 }

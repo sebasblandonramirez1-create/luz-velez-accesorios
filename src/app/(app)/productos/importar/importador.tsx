@@ -7,13 +7,14 @@ import { categoriaDesdeTexto, leerCsv, mapearEncabezados } from "@/lib/csv";
 import { interpretarCodigoDeHoja, normalizarCodigo, codigoValido } from "@/lib/codigos";
 import { leerPesos, pesos } from "@/lib/formato";
 import { CATEGORIA_SINGULAR } from "@/lib/tipos";
+import { normalizarCodigoClasificacion } from "@/lib/clasificaciones";
 import { importarProductos, type FilaImportacion } from "./acciones";
 
 interface FilaVista extends FilaImportacion {
   problema: string | null;
 }
 
-export function Importador({ codigosExistentes }: { codigosExistentes: string[] }) {
+export function Importador({ codigosExistentes, clasificaciones }: { codigosExistentes: string[]; clasificaciones: string[] }) {
   const router = useRouter();
   const [filas, setFilas] = useState<FilaVista[]>([]);
   const [columnas, setColumnas] = useState<string[]>([]);
@@ -51,6 +52,10 @@ export function Importador({ codigosExistentes }: { codigosExistentes: string[] 
         codigo,
         nombre,
         categoria: mapa.categoria != null ? categoriaDesdeTexto(celda(f, "categoria")) : categoriaDesdeTexto(nombre),
+        clasificacion: (() => {
+          const k = normalizarCodigoClasificacion(celda(f, "clasificacion"));
+          return k && clasificaciones.includes(k) ? k : null;
+        })(),
         subcategoria: celda(f, "subcategoria"),
         material: celda(f, "material"),
         color: celda(f, "color"),
@@ -109,6 +114,7 @@ export function Importador({ codigosExistentes }: { codigosExistentes: string[] 
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-borde text-left">
+                  <th className="py-2 pr-2">Clas.</th>
                   <th className="py-2 pr-2">Código</th>
                   <th className="py-2 pr-2">Descripción</th>
                   <th className="py-2 pr-2">Categoría</th>
@@ -121,6 +127,7 @@ export function Importador({ codigosExistentes }: { codigosExistentes: string[] 
               <tbody>
                 {filas.map((f, i) => (
                   <tr key={i} className={`border-b border-borde ${f.problema ? "bg-peligro-claro/40" : ""}`}>
+                    <td className="py-1.5 pr-2 font-mono font-bold">{f.clasificacion ?? <span className="font-sans text-xs font-normal text-alerta">sin clasificar</span>}</td>
                     <td className="py-1.5 pr-2 font-semibold">{f.codigo}</td>
                     <td className="py-1.5 pr-2">{f.nombre}</td>
                     <td className="py-1.5 pr-2">{CATEGORIA_SINGULAR[f.categoria]}</td>

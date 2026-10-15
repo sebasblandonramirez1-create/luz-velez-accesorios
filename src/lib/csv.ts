@@ -76,6 +76,7 @@ export const COLUMNAS_PRODUCTO: Record<string, string[]> = {
   codigo: ["codigo", "cod", "referencia", "ref", "sku"],
   nombre: ["nombre", "descripcion", "producto", "articulo", "detalle"],
   categoria: ["categoria", "tipo"],
+  clasificacion: ["clasificacion", "clase", "clas"],
   subcategoria: ["subcategoria", "sub_categoria"],
   material: ["material", "linea"],
   color: ["color"],
