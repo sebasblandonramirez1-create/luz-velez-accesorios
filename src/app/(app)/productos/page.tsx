@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { clienteServidor } from "@/lib/supabase/servidor";
-import { Aviso, BotonEnlace, Encabezado, EstadoVacio, Etiqueta } from "@/components/ui";
-import { MiniaturaProducto } from "@/components/miniatura";
-import { pesos } from "@/lib/formato";
+import { Aviso, BotonEnlace, Encabezado, EstadoVacio } from "@/components/ui";
 import { CATEGORIAS, type CategoriaProducto } from "@/lib/tipos";
-import { Filtros } from "./filtros";
+import { Filtros, type OpcionesFiltros } from "./filtros";
+import { ListaProductos } from "./lista-productos";
 import { conteoPorClasificacion, FILTRO_SIN_CLASIFICAR } from "@/lib/clasificaciones";
 
 export const metadata = { title: "Productos" };
@@ -22,6 +21,14 @@ export default async function PaginaProductos({ searchParams }: PageProps<"/prod
   const categoria = typeof p.categoria === "string" ? p.categoria : "";
   const clasificacion = typeof p.clasificacion === "string" ? p.clasificacion : "";
   const filtro = typeof p.filtro === "string" ? p.filtro : "";
+  const material = typeof p.material === "string" ? p.material : "";
+  const color = typeof p.color === "string" ? p.color : "";
+  const proveedor = typeof p.proveedor === "string" ? p.proveedor : "";
+  const existencias = typeof p.existencias === "string" ? p.existencias : "";
+  const dia = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "");
+  const creadoDesde = dia(p.creado_desde);
+  const creadoHasta = dia(p.creado_hasta);
+  const hayFiltros = Boolean(q || categoria || clasificacion || filtro || material || color || proveedor || existencias || creadoDesde || creadoHasta);
   const orden = typeof p.orden === "string" && ORDENES[p.orden] ? p.orden : "codigo";
   const aviso = typeof p.aviso === "string" ? p.aviso : null;
 
@@ -29,7 +36,7 @@ export default async function PaginaProductos({ searchParams }: PageProps<"/prod
 
   let consulta = supabase
     .from("productos")
-    .select("id, codigo, nombre, categoria, clasificacion, material, color, precio_base, precio_publico, stock_actual, stock_minimo, activo, producto_fotos(ruta_miniatura, principal)")
+    .select("id, codigo, nombre, categoria, clasificacion, material, color, precio_base, precio_publico, stock_actual, stock_minimo, activo, creado_en, producto_fotos(ruta_miniatura, principal)")
     .is("eliminado_en", null);
 
   if (filtro === "descontinuados") consulta = consulta.eq("activo", false);
@@ -37,20 +44,45 @@ export default async function PaginaProductos({ searchParams }: PageProps<"/prod
   if (categoria && categoria in CATEGORIAS) consulta = consulta.eq("categoria", categoria as CategoriaProducto);
   if (clasificacion === FILTRO_SIN_CLASIFICAR) consulta = consulta.is("clasificacion", null);
   else if (clasificacion) consulta = consulta.eq("clasificacion", clasificacion);
+  if (material) consulta = consulta.ilike("material", material.replace(/[%_]/g, ""));
+  if (color) consulta = consulta.ilike("color", color.replace(/[%_]/g, ""));
+  if (proveedor === "sin") consulta = consulta.is("proveedor_id", null);
+  else if (/^[0-9a-f-]{36}$/.test(proveedor)) consulta = consulta.eq("proveedor_id", proveedor);
+  if (existencias === "sin") consulta = consulta.eq("stock_actual", 0);
+  else if (existencias === "con") consulta = consulta.gt("stock_actual", 0);
+  // Fechas de creación: días en Bogotá.
+  if (creadoDesde) consulta = consulta.gte("creado_en", `${creadoDesde}T00:00:00-05:00`);
+  if (creadoHasta) consulta = consulta.lte("creado_en", `${creadoHasta}T23:59:59.999-05:00`);
   if (q) {
     const patron = `%${q.replace(/[%_]/g, "")}%`;
     consulta = consulta.or(`codigo.ilike.${patron},nombre.ilike.${patron},material.ilike.${patron},color.ilike.${patron},subcategoria.ilike.${patron}`);
   }
   consulta = consulta.order(ORDENES[orden].columna, { ascending: ORDENES[orden].ascendente }).limit(500);
 
-  const [{ data, error }, { data: clasificaciones }, { count: sinClasificar }] = await Promise.all([
+  const [{ data, error }, { data: clasificaciones }, { count: sinClasificar }, { data: valores }, { data: proveedores }] = await Promise.all([
     consulta,
     supabase.from("clasificaciones_producto").select("codigo, nombre, activa").order("orden").order("codigo"),
     supabase.from("productos").select("id", { count: "exact", head: true }).is("eliminado_en", null).eq("activo", true).is("clasificacion", null),
+    supabase.from("productos").select("material, color").is("eliminado_en", null).limit(2000),
+    supabase.from("contactos").select("id, nombre").eq("tipo", "proveedor").is("eliminado_en", null).order("nombre"),
   ]);
   let productos = data ?? [];
+  const distintos = (lista: string[]) => {
+    const vistos = new Map<string, string>();
+    for (const v of lista) {
+      const t = v.trim();
+      if (t && !vistos.has(t.toLowerCase())) vistos.set(t.toLowerCase(), t);
+    }
+    return [...vistos.values()].sort((a, b) => a.localeCompare(b, "es"));
+  };
+  const opciones: OpcionesFiltros = {
+    clasificaciones: clasificaciones ?? [],
+    materiales: distintos((valores ?? []).map((v) => v.material)),
+    colores: distintos((valores ?? []).map((v) => v.color)),
+    proveedores: proveedores ?? [],
+  };
 
-  if (filtro === "stock_bajo") productos = productos.filter((x) => x.stock_actual <= x.stock_minimo);
+  if (filtro === "stock_bajo" || existencias === "bajo") productos = productos.filter((x) => x.stock_actual <= x.stock_minimo);
   if (filtro === "sin_movimiento") {
     const { data: sin } = await supabase.from("productos_sin_movimiento").select("id");
     const ids = new Set((sin ?? []).map((x) => x.id));
@@ -95,47 +127,36 @@ export default async function PaginaProductos({ searchParams }: PageProps<"/prod
           y abre cada uno para elegirla.
         </Aviso>
       )}
-      <Filtros q={q} categoria={categoria} clasificacion={clasificacion} filtro={filtro} orden={orden} clasificaciones={clasificaciones ?? []} />
+      <Filtros
+        valores={{ q, categoria, clasificacion, filtro, orden, material, color, proveedor, existencias, creado_desde: creadoDesde, creado_hasta: creadoHasta }}
+        opciones={opciones}
+      />
 
       {productos.length === 0 ? (
         <EstadoVacio
-          titulo={q || categoria || clasificacion || filtro ? "Nada coincide con la búsqueda" : "Todavía no hay productos"}
-          texto={q || categoria || clasificacion || filtro ? "Prueba con otra palabra o quita los filtros." : "Añade el primero con el botón de arriba o importa tu catálogo desde Excel."}
-          accion={!q && !categoria && !clasificacion && !filtro ? <BotonEnlace href="/productos/nuevo">Añadir producto</BotonEnlace> : undefined}
+          titulo={hayFiltros ? "Nada coincide con los filtros" : "Todavía no hay productos"}
+          texto={hayFiltros ? "Prueba con otra palabra o quita los filtros." : "Añade el primero con el botón de arriba o importa tu catálogo desde Excel."}
+          accion={!hayFiltros ? <BotonEnlace href="/productos/nuevo">Añadir producto</BotonEnlace> : undefined}
         />
       ) : (
-        <ul className="divide-y divide-borde overflow-hidden rounded-2xl border border-borde bg-superficie">
-          {productos.map((prod) => {
-            const foto = prod.producto_fotos?.find((f) => f.principal) ?? prod.producto_fotos?.[0];
-            const bajo = prod.stock_actual <= prod.stock_minimo;
-            return (
-              <li key={prod.id}>
-                <Link href={`/productos/${prod.id}`} className="flex items-center gap-3 p-3 hover:bg-fondo">
-                  <MiniaturaProducto ruta={foto?.ruta_miniatura} nombre={prod.nombre} tamano={60} />
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate font-semibold">{prod.nombre}</span>
-                      {!prod.activo && <Etiqueta>Descontinuado</Etiqueta>}
-                    </span>
-                    <span className="block text-sm text-texto-suave">
-                      {prod.clasificacion ? <strong className="mr-1 rounded bg-primario-claro px-1 text-primario-oscuro">{prod.clasificacion}</strong> : <span className="mr-1 rounded bg-alerta-claro px-1 text-xs font-semibold text-alerta">Sin clasificar</span>}
-                      {prod.codigo} · {CATEGORIAS[prod.categoria]}
-                      {prod.material ? ` · ${prod.material}` : ""}
-                      {prod.color ? ` · ${prod.color}` : ""}
-                    </span>
-                    <span className="block text-sm">
-                      Público <strong>{pesos(prod.precio_publico)}</strong> · Base {pesos(prod.precio_base)}
-                    </span>
-                  </span>
-                  <span className="text-right">
-                    <span className={`block text-xl font-bold ${prod.stock_actual === 0 ? "text-peligro" : bajo ? "text-alerta" : ""}`}>{prod.stock_actual}</span>
-                    <span className="block text-xs text-texto-suave">en stock</span>
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <ListaProductos
+          productos={productos.map((prod) => ({
+            id: prod.id,
+            codigo: prod.codigo,
+            nombre: prod.nombre,
+            categoria: CATEGORIAS[prod.categoria],
+            clasificacion: prod.clasificacion,
+            material: prod.material,
+            color: prod.color,
+            precio_base: prod.precio_base,
+            precio_publico: prod.precio_publico,
+            stock_actual: prod.stock_actual,
+            stock_minimo: prod.stock_minimo,
+            activo: prod.activo,
+            creado_en: prod.creado_en,
+            miniatura: (prod.producto_fotos?.find((f) => f.principal) ?? prod.producto_fotos?.[0])?.ruta_miniatura ?? null,
+          }))}
+        />
       )}
 
       {productos.length > 0 && (

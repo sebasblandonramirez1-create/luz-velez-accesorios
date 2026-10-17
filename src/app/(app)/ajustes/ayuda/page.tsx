@@ -22,6 +22,9 @@ export default function PaginaAyuda() {
             <strong>Registra las entradas</strong> cuando compres mercancía: «Inventario → Registrar movimiento → Entrada por compra». El stock se calcula solo.
           </li>
           <li>
+            <strong>Filtra y selecciona productos</strong>: en Productos, «Más filtros» permite buscar por existencias, material, color, proveedor y fecha de creación. Marca varios productos, incluso cambiando de filtro, y con «Ingresar al stock» registras la entrada de todos de una vez.
+          </li>
+          <li>
             <strong>Clasifica cada producto</strong> con su código corto (CP collar de piedras, CM collar medio, CCH collar choker, PL pulsera, PLM pulsera media; se cambian en Ajustes → Clasificaciones). La clasificación sale junto al código en recibos, hojas y listas, con un conteo al final, y la app señala los productos que falten por clasificar.
           </li>
           <li>

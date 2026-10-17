@@ -439,6 +439,28 @@ Añadido el 01/10/2026 (migración 10).
   título ejecutivo), conviene revisar el texto de las condiciones con una abogada o un
   abogado.
 
+## Filtros, selección múltiple y entrada al stock en lote
+
+Añadido el 16/10/2026.
+
+- **Filtros de la lista de productos.** Además de la búsqueda, la categoría, la
+  clasificación, el estado y el orden, «Más filtros» añade existencias (con, sin, stock
+  bajo), material o línea, color, proveedor y **fecha de creación** (desde y hasta, en
+  días de Bogotá). Todo vive en la dirección (`/productos?material=…&creado_desde=…`),
+  así que un filtro se puede compartir o guardar como marcador; «Limpiar filtros» vuelve
+  a la lista normal.
+- **Selección múltiple.** Cada producto lleva una casilla y hay un botón para
+  seleccionar o quitar todos los de la lista filtrada. La selección se guarda en el
+  navegador (`localStorage`), de modo que se puede cambiar de filtros y sumar productos
+  de distintos criterios; una barra fija muestra cuántos van.
+- **Ingresar al stock.** Desde la barra, `/inventario/entrada` muestra los seleccionados
+  con la cantidad que entra de cada uno (y «misma cantidad para todos»), el costo por
+  unidad cuando es entrada por compra, el tipo (entrada por compra o ajuste que suma),
+  la fecha y una nota común; también deja añadir más productos con el buscador. Todo se
+  inserta en una sola operación (`movimientos_inventario`): si una línea falla, no entra
+  ninguna. Con entrada por compra se actualiza el costo de compra de cada producto.
+  Lógica pura en `src/lib/entradas.ts`, probada en `tests/entradas.test.ts`.
+
 ## Clasificación de productos (CP, CM, CCH, PL, PLM…)
 
 Añadido el 15/10/2026 (migración 12).
