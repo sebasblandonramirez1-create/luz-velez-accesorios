@@ -18,6 +18,8 @@ export interface ProductoFiltrable {
   stock_actual: number;
   precio_base: number;
   miniatura: string | null;
+  /** Fecha de creación del producto (se muestra en todas las listas). */
+  creado_en?: string | null;
 }
 
 export type OrdenProductos = "codigo" | "nombre" | "precio_menor" | "precio_mayor" | "stock";

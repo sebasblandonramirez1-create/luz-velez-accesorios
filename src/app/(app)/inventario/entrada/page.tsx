@@ -12,13 +12,13 @@ export default async function PaginaEntrada() {
   const supabase = await clienteServidor();
   const { data: productos } = await supabase
     .from("productos")
-    .select("id, codigo, nombre, categoria, clasificacion, material, color, stock_actual, costo_compra, precio_base, producto_fotos(ruta_miniatura, principal)")
+    .select("id, codigo, nombre, categoria, clasificacion, material, color, stock_actual, costo_compra, precio_base, creado_en, producto_fotos(ruta_miniatura, principal)")
     .is("eliminado_en", null)
     .eq("activo", true)
     .order("codigo");
   return (
     <div>
-      <Encabezado titulo="Ingresar productos al stock" volver="/productos" subtitulo="Escribe cuántas unidades entran de cada producto seleccionado. Todo se registra junto, con la misma fecha y nota." />
+      <Encabezado titulo="Ingresar productos al stock" volver="/productos" subtitulo="Para productos ya creados: búscalos o usa los que seleccionaste en Productos, escribe cuántas unidades entran de cada uno y registra todo junto, con la misma fecha y nota." />
       <FormularioEntrada
         productos={(productos ?? []).map((x) => ({
           id: x.id,
@@ -31,6 +31,7 @@ export default async function PaginaEntrada() {
           stock_actual: x.stock_actual,
           precio_base: x.precio_base,
           costo: x.costo_compra ?? x.precio_base,
+          creado_en: x.creado_en,
           miniatura: x.producto_fotos?.find((f) => f.principal)?.ruta_miniatura ?? x.producto_fotos?.[0]?.ruta_miniatura ?? null,
         }))}
       />

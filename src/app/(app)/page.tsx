@@ -5,6 +5,7 @@ import { horasDesde, haceCuanto, fechaHora, hoyIso, pesos } from "@/lib/formato"
 import { nombreMovimiento } from "@/lib/inventario";
 import { numeroDocumento } from "@/lib/ventas";
 import { MiniaturaProducto } from "@/components/miniatura";
+import { TAREAS_DEL_DIA } from "@/lib/ayuda";
 
 export default async function Tablero() {
   const sesion = (await sesionActual())!;
@@ -68,7 +69,7 @@ export default async function Tablero() {
         </Aviso>
       )}
 
-      <section aria-label="Accesos directos" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section aria-label="Accesos directos" className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
         <BotonEnlace href="/ventas/nueva" grande className="flex-col py-4">
           <span className="text-2xl" aria-hidden>🛍️</span>
           Registrar venta
@@ -81,11 +82,34 @@ export default async function Tablero() {
           <span className="text-2xl" aria-hidden>➕</span>
           Añadir producto
         </BotonEnlace>
+        <BotonEnlace href="/inventario/entrada" grande variante="secundario" className="flex-col py-4">
+          <span className="text-2xl" aria-hidden>⇧</span>
+          Ingresar al stock
+        </BotonEnlace>
         <BotonEnlace href="/etiquetas" grande variante="secundario" className="flex-col py-4">
           <span className="text-2xl" aria-hidden>🏷️</span>
           Imprimir etiquetas
         </BotonEnlace>
       </section>
+
+      <Tarjeta titulo="¿Qué pasó hoy? Toca lo que corresponda">
+        <ul className="grid gap-2 sm:grid-cols-2">
+          {TAREAS_DEL_DIA.map((t) => (
+            <li key={t.href}>
+              <Link href={t.href} className="flex min-h-16 items-center gap-3 rounded-xl border border-borde bg-fondo p-3 hover:border-primario hover:bg-primario-claro">
+                <span aria-hidden className="text-2xl">
+                  {t.emoji}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-lg font-bold leading-tight">{t.titulo}</span>
+                  <span className="block text-sm text-texto-suave">{t.detalle}</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-3 text-sm text-texto-suave">¿Dudas? El botón «? Ayuda» de abajo a la derecha explica cada pantalla.</p>
+      </Tarjeta>
 
       <section className="grid gap-3 sm:grid-cols-3">
         <Tarjeta>

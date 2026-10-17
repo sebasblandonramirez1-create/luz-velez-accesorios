@@ -32,6 +32,8 @@ export function FormularioProducto({
   const [codigo, setCodigo] = useState(producto?.codigo ?? "");
   const [codigoManual, setCodigoManual] = useState(esEdicion);
   const [precioBase, setPrecioBase] = useState<number | null>(producto?.precio_base ?? null);
+  const [ingresarStock, setIngresarStock] = useState(true);
+  const [ejemplares, setEjemplares] = useState(1);
   const [publicoManual, setPublicoManual] = useState(esEdicion);
 
   const sugerido = useMemo(() => (precioBase == null ? null : precioPublicoSugerido(precioBase, ajustes)), [precioBase, ajustes]);
@@ -137,11 +139,49 @@ export function FormularioProducto({
         </div>
       </Tarjeta>
 
+      {!esEdicion && (
+        <Tarjeta titulo="Ingresar al stock">
+          <label className="flex items-start gap-3 rounded-xl border border-borde bg-superficie p-3">
+            <input type="checkbox" name="ingresar_stock" checked={ingresarStock} onChange={(e) => setIngresarStock(e.target.checked)} className="mt-1 h-6 w-6 accent-[var(--acento)]" />
+            <span>
+              <span className="block font-semibold">Ingresar al inventario al guardar</span>
+              <span className="block text-sm text-texto-suave">Los ejemplares entran como «entrada por compra», con el costo de compra de arriba si lo escribiste. Si lo desmarcas, el producto se crea con cero existencias y podrás ingresarlo después.</span>
+            </span>
+          </label>
+          {ingresarStock && (
+            <div className="mt-3 grid gap-4 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-semibold text-texto">Número de ejemplares a ingresar</span>
+                <div className="flex">
+                  <button type="button" className="min-h-12 w-12 rounded-l-xl border border-borde bg-fondo text-xl font-bold disabled:opacity-40" onClick={() => setEjemplares((n) => Math.max(1, n - 1))} disabled={ejemplares <= 1} aria-label="Menos">
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    name="stock_inicial"
+                    inputMode="numeric"
+                    min={1}
+                    value={ejemplares}
+                    onChange={(e) => setEjemplares(Math.max(1, Number.parseInt(e.target.value || "1", 10)))}
+                    className="campo !rounded-none text-center text-lg font-bold"
+                    aria-label="Número de ejemplares a ingresar"
+                    required
+                  />
+                  <button type="button" className="min-h-12 w-12 rounded-r-xl border border-borde bg-fondo text-xl font-bold" onClick={() => setEjemplares((n) => n + 1)} aria-label="Más">
+                    +
+                  </button>
+                </div>
+                <span className="mt-1 block text-sm text-texto-suave">
+                  {ejemplares === 1 ? "Queda 1 unidad en stock." : `Quedan ${ejemplares} unidades en stock.`}
+                </span>
+              </label>
+            </div>
+          )}
+        </Tarjeta>
+      )}
+
       <Tarjeta titulo="Inventario">
         <div className="grid gap-4 sm:grid-cols-2">
-          {!esEdicion && (
-            <Campo etiqueta="Cantidad inicial" name="stock_inicial" type="number" inputMode="numeric" min={0} defaultValue={0} ayuda="Cuántas tienes ahora. Se registra como entrada." />
-          )}
           <Campo etiqueta="Avisar cuando queden" name="stock_minimo" type="number" inputMode="numeric" min={0} defaultValue={producto?.stock_minimo ?? ajustes.stock_minimo_predeterminado} ayuda="Mínimo para la alerta de stock bajo." />
           <Selector etiqueta="Proveedor (opcional)" name="proveedor_id" defaultValue={producto?.proveedor_id ?? ""}>
             <option value="">Sin proveedor</option>
@@ -152,6 +192,14 @@ export function FormularioProducto({
             ))}
           </Selector>
         </div>
+        {esEdicion && (
+          <p className="mt-3 text-sm">
+            ¿Llegaron más ejemplares?{" "}
+            <a href={`/inventario/nuevo?producto=${producto!.id}`} className="font-semibold text-primario underline-offset-2 hover:underline">
+              Ingresar al stock
+            </a>
+          </p>
+        )}
         <div className="mt-4 space-y-2">
           <Casilla etiqueta="Mostrar en el catálogo público" name="visible_catalogo" defaultChecked={producto?.visible_catalogo ?? false} ayuda="Solo aplica si el catálogo está activado en Ajustes." />
           {esEdicion && (

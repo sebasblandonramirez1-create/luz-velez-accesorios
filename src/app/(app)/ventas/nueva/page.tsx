@@ -9,7 +9,7 @@ export default async function PaginaNuevaVenta() {
   const [{ data: productos }, { data: contactos }] = await Promise.all([
     supabase
       .from("productos")
-      .select("id, codigo, nombre, stock_actual, precio_publico, producto_fotos(ruta_miniatura, principal)")
+      .select("id, codigo, nombre, stock_actual, precio_publico, creado_en, producto_fotos(ruta_miniatura, principal)")
       .is("eliminado_en", null)
       .eq("activo", true)
       .order("codigo"),
@@ -25,6 +25,7 @@ export default async function PaginaNuevaVenta() {
           nombre: x.nombre,
           stock_actual: x.stock_actual,
           precio_publico: x.precio_publico,
+          creado_en: x.creado_en,
           miniatura: x.producto_fotos?.find((f) => f.principal)?.ruta_miniatura ?? x.producto_fotos?.[0]?.ruta_miniatura ?? null,
         }))}
         contactos={contactos ?? []}

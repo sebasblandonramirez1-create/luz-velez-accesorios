@@ -31,7 +31,7 @@ export default async function PaginaModificarConsignacion({ params }: PageProps<
       .order("creado_en"),
     supabase
       .from("productos")
-      .select("id, codigo, nombre, categoria, clasificacion, material, color, stock_actual, precio_base, producto_fotos(ruta_miniatura, principal)")
+      .select("id, codigo, nombre, categoria, clasificacion, material, color, stock_actual, precio_base, creado_en, producto_fotos(ruta_miniatura, principal)")
       .is("eliminado_en", null)
       .eq("activo", true)
       .order("codigo"),
@@ -62,7 +62,7 @@ export default async function PaginaModificarConsignacion({ params }: PageProps<
   const entregado = new Map((lineas ?? []).map((l) => [l.producto_id, l.cantidad_entregada]));
   const catalogo = new Map<string, ProductoFiltrable>();
   for (const p of productos ?? []) {
-    catalogo.set(p.id, { id: p.id, codigo: p.codigo, nombre: p.nombre, categoria: p.categoria, clasificacion: p.clasificacion, material: p.material, color: p.color, precio_base: p.precio_base, stock_actual: p.stock_actual + (entregado.get(p.id) ?? 0), miniatura: miniaturaDe(p.producto_fotos) });
+    catalogo.set(p.id, { id: p.id, codigo: p.codigo, nombre: p.nombre, categoria: p.categoria, clasificacion: p.clasificacion, creado_en: p.creado_en, material: p.material, color: p.color, precio_base: p.precio_base, stock_actual: p.stock_actual + (entregado.get(p.id) ?? 0), miniatura: miniaturaDe(p.producto_fotos) });
   }
   const iniciales: LineaEditable[] = (lineas ?? []).map((l) => {
     const p = l.productos as unknown as ProductoDeLinea;

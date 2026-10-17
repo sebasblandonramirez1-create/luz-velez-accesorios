@@ -460,6 +460,26 @@ Añadido el 16/10/2026.
   inserta en una sola operación (`movimientos_inventario`): si una línea falla, no entra
   ninguna. Con entrada por compra se actualiza el costo de compra de cada producto.
   Lógica pura en `src/lib/entradas.ts`, probada en `tests/entradas.test.ts`.
+- **Accesos.** El inicio tiene el acceso directo «Ingresar al stock» (productos ya creados,
+  con buscador). Al crear un producto nuevo, la tarjeta «Ingresar al stock» trae la casilla
+  «Ingresar al inventario al guardar» y el **número de ejemplares a ingresar** (entrada por
+  compra con el costo indicado); al editar, un enlace lleva a registrar más ejemplares.
+
+## Ayuda en cada pantalla y facilidades para una adulta mayor
+
+Añadido el 16/10/2026.
+
+- **Botón «? Ayuda»** fijo abajo a la derecha en todas las pantallas con sesión
+  (`src/components/ayuda-contextual.tsx`). Abre un panel con los pasos de la pantalla
+  actual en lenguaje sencillo (textos en `src/lib/ayuda.ts`, por ruta), botones **A−** y
+  **A+** para la letra (los mismos ajustes de «Tamaño de letra»), «Ir al inicio», «Guía
+  completa» y «Ver el tutorial paso a paso otra vez».
+- **Inicio.** Tarjeta «¿Qué pasó hoy?» con las tareas de cada día como botones grandes:
+  llegó mercancía, pieza nueva, vendí, entregué a una vendedora, me trajeron la cuenta,
+  etiquetas. Y el acceso directo «Ingresar al stock».
+- **Fecha de creación** en todas las listas de productos: lista, buscador, selector de
+  piezas, etiquetas, ventas, inventario y entrada al stock.
+- La página Ajustes → Ayuda repite los pasos de cada pantalla para leerlos de corrido.
 
 ## Clasificación de productos (CP, CM, CCH, PL, PLM…)
 

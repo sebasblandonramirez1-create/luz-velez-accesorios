@@ -93,7 +93,7 @@ export function FormularioEntrada({ productos }: { productos: ProductoEntrada[] 
       <Tarjeta titulo={`1. Productos que entran (${lineas.length})`}>
         {lineas.length === 0 && (
           <Aviso tipo="info">
-            No hay productos seleccionados. Búscalos abajo, o vuelve a{" "}
+            Busca abajo los productos que entran y toca «Añadir» en cada uno. También puedes volver a{" "}
             <Link href="/productos" className="font-semibold underline">
               Productos
             </Link>

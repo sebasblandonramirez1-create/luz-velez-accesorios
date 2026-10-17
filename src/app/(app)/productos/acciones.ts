@@ -80,7 +80,9 @@ export async function crearProducto(_estado: EstadoFormulario, fd: FormData): Pr
     .single();
   if (error || !producto) return { error: mensajeDeError(error) };
 
-  const stockInicial = leerPesos(String(fd.get("stock_inicial") ?? "")) ?? 0;
+  // La casilla «Ingresar al inventario al guardar» decide; sin casilla (importación, formularios antiguos) manda la cantidad.
+  const ingresar = fd.has("ingresar_stock") ? fd.get("ingresar_stock") === "on" : true;
+  const stockInicial = ingresar ? (leerPesos(String(fd.get("stock_inicial") ?? "")) ?? 0) : 0;
   if (stockInicial > 0) {
     const { error: e2 } = await supabase.from("movimientos_inventario").insert({
       tipo: "entrada_compra",

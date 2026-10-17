@@ -11,7 +11,7 @@ export default async function PaginaEtiquetas({ searchParams }: PageProps<"/etiq
   const supabase = await clienteServidor();
   const [{ data: ajustes }, { data: productos }] = await Promise.all([
     supabase.from("ajustes").select("nombre_negocio, impresora_modelo, etiqueta_ancho_mm, etiqueta_alto_mm, etiqueta_dpi, etiqueta_mostrar_precio_miles, etiqueta_lineas").eq("id", 1).single(),
-    supabase.from("productos").select("id, codigo, nombre, precio_base, precio_publico, stock_actual, producto_fotos(ruta_miniatura, principal)").is("eliminado_en", null).eq("activo", true).order("codigo"),
+    supabase.from("productos").select("id, codigo, nombre, precio_base, precio_publico, stock_actual, creado_en, producto_fotos(ruta_miniatura, principal)").is("eliminado_en", null).eq("activo", true).order("codigo"),
   ]);
   if (!ajustes) throw new Error("No se pudieron cargar los ajustes.");
 
@@ -32,6 +32,7 @@ export default async function PaginaEtiquetas({ searchParams }: PageProps<"/etiq
           precio_base: x.precio_base,
           precio_publico: x.precio_publico,
           stock_actual: x.stock_actual,
+          creado_en: x.creado_en,
           miniatura: x.producto_fotos?.find((f) => f.principal)?.ruta_miniatura ?? x.producto_fotos?.[0]?.ruta_miniatura ?? null,
         }))}
         preseleccion={preseleccion}

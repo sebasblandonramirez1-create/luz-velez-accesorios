@@ -1,3 +1,4 @@
+import { AYUDA_POR_PANTALLA } from "@/lib/ayuda";
 import { Encabezado, Tarjeta } from "@/components/ui";
 import { BotonVerTutorial } from "@/components/tutorial";
 
@@ -22,7 +23,7 @@ export default function PaginaAyuda() {
             <strong>Registra las entradas</strong> cuando compres mercancía: «Inventario → Registrar movimiento → Entrada por compra». El stock se calcula solo.
           </li>
           <li>
-            <strong>Filtra y selecciona productos</strong>: en Productos, «Más filtros» permite buscar por existencias, material, color, proveedor y fecha de creación. Marca varios productos, incluso cambiando de filtro, y con «Ingresar al stock» registras la entrada de todos de una vez.
+            <strong>Filtra y selecciona productos</strong>: en Productos, «Más filtros» permite buscar por existencias, material, color, proveedor y fecha de creación. Marca varios productos, incluso cambiando de filtro, y con «Ingresar al stock» registras la entrada de todos de una vez. En el inicio, «Ingresar al stock» abre la misma pantalla para productos ya creados; al crear un producto nuevo, la tarjeta «Ingresar al stock» pide el número de ejemplares que entran.
           </li>
           <li>
             <strong>Clasifica cada producto</strong> con su código corto (CP collar de piedras, CM collar medio, CCH collar choker, PL pulsera, PLM pulsera media; se cambian en Ajustes → Clasificaciones). La clasificación sale junto al código en recibos, hojas y listas, con un conteo al final, y la app señala los productos que falten por clasificar.
@@ -38,6 +39,22 @@ export default function PaginaAyuda() {
           </li>
         </ol>
       </Tarjeta>
+      <Tarjeta titulo="Qué se hace en cada pantalla">
+        <p className="mb-3 text-sm text-texto-suave">Lo mismo que muestra el botón «? Ayuda», que está en todas las pantallas abajo a la derecha. Ahí también puedes agrandar la letra.</p>
+        <div className="space-y-4">
+          {AYUDA_POR_PANTALLA.map((a) => (
+            <div key={a.titulo}>
+              <h3 className="font-bold">{a.titulo}</h3>
+              <ol className="list-decimal space-y-0.5 pl-5 text-sm">
+                {a.pasos.map((p, i) => (
+                  <li key={i}>{p}</li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      </Tarjeta>
+
       <Tarjeta titulo="Instalar en el celular">
         <p>
           En Android (Chrome): abre el menú ⋮ y elige <strong>«Añadir a pantalla de inicio»</strong> o «Instalar aplicación». En iPhone (Safari): toca el botón de compartir y luego <strong>«Añadir a pantalla de inicio»</strong>.

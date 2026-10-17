@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { MiniaturaProducto } from "./miniatura";
-import { pesos } from "@/lib/formato";
+import { fecha, pesos } from "@/lib/formato";
 import { facetas, filtrarProductos, filtrosActivos, FILTROS_INICIALES, ORDENES_PRODUCTOS, type FiltrosProductos, type OrdenProductos, type ProductoFiltrable } from "@/lib/filtros-productos";
 import type { CategoriaProducto } from "@/lib/tipos";
 import { FILTRO_SIN_CLASIFICAR } from "@/lib/clasificaciones";
@@ -192,6 +192,7 @@ export function SelectorProductos({
                     <span className="line-clamp-2 min-h-8 w-full text-xs leading-tight text-texto-suave">{p.nombre}</span>
                     <span className="text-sm font-semibold">$ {pesos(p.precio_base)}</span>
                     <span className={`text-xs ${p.stock_actual <= 0 ? "text-peligro" : "text-texto-suave"}`}>{p.stock_actual} en stock</span>
+                    {p.creado_en && <span className="text-[0.65rem] text-texto-suave">creado el {fecha(p.creado_en)}</span>}
                   </button>
                   <Contador p={p} cantidad={cantidad} onCambiar={onCambiar} />
                 </li>
@@ -214,6 +215,7 @@ export function SelectorProductos({
                     </span>
                     <span className="block text-sm">
                       $ {pesos(p.precio_base)} · <span className={p.stock_actual <= 0 ? "text-peligro" : "text-texto-suave"}>{p.stock_actual} en stock</span>
+                      {p.creado_en ? <span className="text-texto-suave"> · creado el {fecha(p.creado_en)}</span> : null}
                     </span>
                   </span>
                   <Contador p={p} cantidad={cantidad} onCambiar={onCambiar} compacto />

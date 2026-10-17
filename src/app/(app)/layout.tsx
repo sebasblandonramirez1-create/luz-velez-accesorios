@@ -3,6 +3,7 @@ import { sesionActual, clienteServidor } from "@/lib/supabase/servidor";
 import { BarraInferior, MenuLateral } from "@/components/navegacion";
 import { RegistroServiceWorker, SincronizarPendientes } from "@/components/pwa";
 import { Tutorial } from "@/components/tutorial";
+import { AyudaContextual } from "@/components/ayuda-contextual";
 import { Marca } from "@/components/marca";
 
 // Todas las páginas autenticadas dependen de la sesión: se renderizan por petición.
@@ -39,6 +40,7 @@ export default async function DisenoApp({ children }: LayoutProps<"/">) {
       <RegistroServiceWorker />
       <SincronizarPendientes />
       <Tutorial />
+      <AyudaContextual />
     </div>
   );
 }

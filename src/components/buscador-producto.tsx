@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { MiniaturaProducto } from "./miniatura";
+import { fecha } from "@/lib/formato";
 
 export interface ProductoBuscable {
   id: string;
@@ -9,6 +10,7 @@ export interface ProductoBuscable {
   nombre: string;
   stock_actual: number;
   miniatura: string | null;
+  creado_en?: string | null;
 }
 
 /**
@@ -41,6 +43,7 @@ export function BuscadorProducto({
           <span className="block truncate font-semibold">{actual.nombre}</span>
           <span className="block text-sm text-texto-suave">
             {actual.codigo} · {actual.stock_actual} en stock
+            {actual.creado_en ? ` · creado el ${fecha(actual.creado_en)}` : ""}
           </span>
         </span>
         <button type="button" onClick={() => onSeleccionar("")} className="min-h-10 rounded-lg px-3 font-semibold text-primario">
@@ -76,6 +79,7 @@ export function BuscadorProducto({
                 <span className="w-full truncate text-xs font-semibold">{p.codigo}</span>
                 <span className="w-full truncate text-xs text-texto-suave">{p.nombre}</span>
                 <span className={`text-xs ${p.stock_actual === 0 ? "text-peligro" : "text-texto-suave"}`}>{p.stock_actual} en stock</span>
+                {p.creado_en && <span className="text-[0.65rem] text-texto-suave">creado el {fecha(p.creado_en)}</span>}
               </button>
             </li>
           ))}

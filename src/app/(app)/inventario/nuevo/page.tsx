@@ -10,7 +10,7 @@ export default async function PaginaNuevoMovimiento({ searchParams }: PageProps<
   const supabase = await clienteServidor();
   const { data: productos } = await supabase
     .from("productos")
-    .select("id, codigo, nombre, stock_actual, costo_compra, precio_base, producto_fotos(ruta_miniatura, principal)")
+    .select("id, codigo, nombre, stock_actual, costo_compra, precio_base, creado_en, producto_fotos(ruta_miniatura, principal)")
     .is("eliminado_en", null)
     .eq("activo", true)
     .order("codigo");
@@ -25,6 +25,7 @@ export default async function PaginaNuevoMovimiento({ searchParams }: PageProps<
           nombre: x.nombre,
           stock_actual: x.stock_actual,
           costo: x.costo_compra ?? x.precio_base,
+          creado_en: x.creado_en,
           miniatura: x.producto_fotos?.find((f) => f.principal)?.ruta_miniatura ?? x.producto_fotos?.[0]?.ruta_miniatura ?? null,
         }))}
         productoInicial={productoInicial}
